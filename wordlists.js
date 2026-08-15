@@ -20,6 +20,10 @@ window.WORDLISTS = [
       { id: "de-glas", word: "Glas", syllables: ["Glas"], conceptId: "glass", image: null },
       { id: "de-brot", word: "Brot", syllables: ["Brot"], conceptId: "bread", image: null },
       { id: "de-milch", word: "Milch", syllables: ["Milch"], conceptId: "milk", image: null },
+      { id: "de-mehl", word: "Mehl", syllables: ["Mehl"], conceptId: "flour", image: null },
+      { id: "de-zucker", word: "Zucker", syllables: ["Zu", "cker"], conceptId: "sugar", image: null },
+      { id: "de-salz", word: "Salz", syllables: ["Salz"], conceptId: "salt", image: null },
+      { id: "de-pfeffer", word: "Pfeffer", syllables: ["Pfef", "fer"], conceptId: "pepper", image: null },
     ],
   },
   {
