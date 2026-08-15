@@ -52,19 +52,40 @@ Datenstruktur pro Liste:
 - **`syllables`**: nach deutschen Trennregeln (Duden). Zusammengesetzte Wörter
   (Komposita, z. B. "Tierärztin" → Tier-ärz-tin) können bei automatischer
   Trennung danebenliegen – von Hand prüfen.
-- **`image`**: aktuell überall `null`. Struktur ist vorbereitet für
-  ARASAAC-Piktogramme (Lizenz **CC BY-NC-SA – Quellenangabe nötig!**, z. B.
-  `{ source: "arasaac", url, license: "CC BY-NC-SA", attribution: "ARASAAC" }`)
-  und ergänzend KI-generierte Bilder (`source: "ai"`). Bilder werden in der
-  App erst nach Antippen von "Vorlesen" angezeigt, nicht vorher (Schüler:innen
-  sollen zuerst nur den Text selbst lesen).
+- **`image`**: `{ source, arasaacId, url, license, attribution }` (siehe
+  `arasaac()`-Hilfsfunktion oben in `wordlists.js`) oder `null`, falls noch
+  kein Bild gesetzt ist. Bilder werden lokal unter `images/pictograms/`
+  gespeichert (Dateiname = `conceptId`), nicht extern verlinkt – die App
+  funktioniert damit unabhängig von der Verfügbarkeit von arasaac.org.
+  ARASAAC-Bilder stehen unter **CC BY-NC-SA** (Quellenangabe nötig); die App
+  zeigt die Quellenangabe automatisch an, sobald ein Bild sichtbar ist
+  (`attributionLine()` in `app.js`). Ergänzend können KI-generierte Bilder
+  verwendet werden (`source: "ai"`, ohne `arasaacId`).
+  - Im Lesemodus ("🔤 Wort lesen") werden **keine** Bilder angezeigt – bewusst
+    reduziert auf Wort + Vorlesen, damit die Übung einfach bleibt.
+  - Im Bild-Übungsmodus ("🖼️ Bild-Übung" auf der Moduswahl-Seite) ist das
+    Bild Teil der Aufgabe: Wort wird gezeigt, Schüler:in wählt es aus 4
+    Bild-Alternativen. Der Vorlesen-Button ist hier bewusst klein und unten
+    rechts platziert (nicht der große primäre Button wie im Lesemodus), damit
+    er nicht zum vorschnellen Antippen verleitet – die Schüler:innen sollen
+    primär lesen, Audio ist nur Zusatzhilfe. Ein Wort braucht ein Bild, damit
+    dieser Modus für seine Liste erscheint – ohne durchgängige Bilder wird der
+    Button automatisch ausgeblendet (`hasImages()` in `app.js`).
+
+### Neues ARASAAC-Bild zu einem Wort hinzufügen
+
+1. Passendes Piktogramm suchen: `curl -sS "https://api.arasaac.org/v1/pictograms/de/search/<Wort>" | jq`
+   – auf `_id` und `keywords` achten, mehrere Kandidaten vergleichen.
+2. Bild herunterladen: `curl -sS -o images/pictograms/<conceptId>.png "https://static.arasaac.org/pictograms/<id>/<id>_500.png"`
+   und **visuell prüfen** (z. B. mit dem Read-Tool), ob es wirklich passt.
+3. In `wordlists.js` beim Wort `image: arasaac("<conceptId>", <id>)` setzen.
 
 ### Neue Wörter/Listen hinzufügen
 
 1. Optional: `node tools/hyphenate.js "Wort"` für einen Trennvorschlag laufen
    lassen – das Ergebnis danach gegen die Duden-Regeln prüfen, besonders bei
    zusammengesetzten Wörtern.
-2. Eintrag nach obigem Schema in `wordlists.js` ergänzen.
+2. Eintrag nach obigem Schema in `wordlists.js` ergänzen (inkl. Bild, s. o.).
 3. `git add -A && git commit -m "..."`. Push macht i. d. R. der Projektinhaber
    selbst im Terminal (Push braucht Zugangsdaten, die hier nicht hinterlegt sind).
 
