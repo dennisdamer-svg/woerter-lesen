@@ -8,7 +8,11 @@
 
 const isVowel = (ch) => "aeiouyäöüAEIOUYÄÖÜ".includes(ch);
 const VOWEL_DIGRAPHS = ["ie", "ei", "ey", "au", "ai", "ay", "eu", "äu", "aa", "ee", "oo", "uu"];
-const INSEPARABLE_TAILS = ["ch", "ck", "ph", "th", "sh"];
+// "sh" ist bewusst nicht enthalten - im Deutschen kein eigenständiger Digraph
+// (anders als im Englischen); führte z. B. bei "Gewächshaus" zu einer falschen
+// Trennung ("Ge-wäch-shaus" statt "Ge-wächs-haus"), da "s" und "h" dort aus
+// zwei verschiedenen Wortteilen (Gewächs + Haus) stammen, kein Lautverbund sind.
+const INSEPARABLE_TAILS = ["ch", "ck", "ph", "th"];
 
 function findNuclei(word) {
   const lower = word.toLowerCase();

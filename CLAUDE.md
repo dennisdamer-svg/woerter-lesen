@@ -22,15 +22,18 @@ werden ausschließlich über `wordlists.js` im Code gepflegt.
 
 ## Aktuelle Listen (Stand: siehe `wordlists.js`)
 
-- **Küche** (14), **Landwirtschaft** (10), **Berufe** (10) – direkte Listen
-  auf oberster Ebene der Startseite.
-- **Gastronomie** – Gruppe (`type: "group"`) auf der Startseite, führt zu
-  einer Unterseite mit den drei Listen **Essen & Trinken** (15), **Im
-  Restaurant** (17), **Am Tisch** (16). Digitalisiert aus vorhandenen
-  Lernkarten (ursprünglich Metacom-Bilder, hier durch ARASAAC ersetzt) und
-  nach Themen statt nach Kartenset-Nummer sortiert. Bewusst etwas größer als
-  die Faustregel 6–10 Wörter/Liste – lässt sich bei Bedarf später weiter
-  aufteilen, sobald einzelne Themen wachsen.
+- **Küche** (14), **Berufe** (10) – direkte Listen auf oberster Ebene der
+  Startseite.
+- **Landwirtschaft** – Gruppe, führt zu **Tiere & Hof** (17), **Feld &
+  Maschinen** (16).
+- **Gastronomie** – Gruppe, führt zu **Essen & Trinken** (15), **Im
+  Restaurant** (17), **Am Tisch** (16).
+
+Beide Gruppen: digitalisiert aus vorhandenen Lernkarten (ursprünglich
+Metacom-Bilder, hier durch ARASAAC ersetzt) und nach Themen statt nach
+Kartenset-Nummer sortiert. Bewusst etwas größer als die Faustregel
+6–10 Wörter/Liste – lässt sich bei Bedarf später weiter aufteilen, sobald
+einzelne Themen wachsen.
 
 ### Gruppen (mehrstufige Startseite)
 
