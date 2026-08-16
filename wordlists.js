@@ -73,4 +73,23 @@ window.WORDLISTS = [
       { id: "de-tieraerztin", word: "Tierärztin", syllables: ["Tier", "ärz", "tin"], conceptId: "veterinarian", image: arasaac("veterinarian", 2780) },
     ],
   },
+  {
+    id: "gastronomie",
+    name: "Gastronomie",
+    lang: "de",
+    words: [
+      { id: "de-wasser", word: "Wasser", syllables: ["Was", "ser"], conceptId: "water", image: arasaac("water", 2248) },
+      { id: "de-cola", word: "Cola", syllables: ["Co", "la"], conceptId: "cola", image: arasaac("cola", 2338) },
+      { id: "de-fanta", word: "Fanta", syllables: ["Fan", "ta"], conceptId: "fanta", image: arasaac("fanta", 6569) },
+      { id: "de-sprite", word: "Sprite", syllables: ["Spri", "te"], conceptId: "sprite", image: arasaac("sprite", 6551) },
+      { id: "de-tee", word: "Tee", syllables: ["Tee"], conceptId: "tea", image: arasaac("tea", 2429) },
+      { id: "de-kaffee", word: "Kaffee", syllables: ["Kaf", "fee"], conceptId: "coffee", image: arasaac("coffee", 24479) },
+      { id: "de-wein", word: "Wein", syllables: ["Wein"], conceptId: "wine", image: arasaac("wine", 2614) },
+      { id: "de-bier", word: "Bier", syllables: ["Bier"], conceptId: "beer", image: arasaac("beer", 2330) },
+      { id: "de-teller", word: "Teller", syllables: ["Tel", "ler"], conceptId: "plate", image: arasaac("plate", 16857) },
+      { id: "de-glas", word: "Glas", syllables: ["Glas"], conceptId: "glass", image: arasaac("glass", 2610) },
+      { id: "de-becher", word: "Becher", syllables: ["Be", "cher"], conceptId: "mug", image: arasaac("mug", 2582) },
+      { id: "de-tasse", word: "Tasse", syllables: ["Tas", "se"], conceptId: "cup", image: arasaac("cup", 9091) },
+    ],
+  },
 ];

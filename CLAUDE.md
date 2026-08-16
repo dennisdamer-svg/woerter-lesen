@@ -11,7 +11,8 @@ Redeploy aus, danach ist die Änderung auf allen iPads sofort verfügbar
 - `index.html` – lädt `wordlists.js` **vor** `app.js`
 - `wordlists.js` – reine Wortlisten-**Daten** (`window.WORDLISTS`), keine Logik
 - `app.js` – App-Logik/UI (Anzeige, Vorlesen, Silbenschrift-Umschalter), keine Wortinhalte
-- `style.css` – Styling, hoher Kontrast, große Touch-Flächen für iPad
+- `style.css` – Styling, hoher Kontrast, große Touch-Flächen für iPad,
+  Schriftart Poppins (lokal in `fonts/`, siehe unten)
 - `tools/hyphenate.js` – Hilfsskript für Silbentrennungs-Vorschläge (s. u.)
 
 Es gibt **kein** In-App-Bearbeiten von Wortlisten (keine Lehrkraft-Oberfläche
@@ -44,6 +45,11 @@ Datenstruktur pro Liste:
 
 - **`id`**: `<lang>-<slug>`. Slug = Wort kleingeschrieben, `ä→ae ö→oe ü→ue ß→ss`,
   keine Sonderzeichen/Leerzeichen. Muss über alle Sprachen hinweg eindeutig sein.
+  Ausnahme: Taucht dasselbe Wort (gleiche Bedeutung, gleiches Bild) bewusst in
+  mehreren Listen auf (z. B. "Teller"/"Glas"/"Tasse" in Küche **und**
+  Gastronomie), wird derselbe Eintrag (gleiche `id`) einfach wiederverwendet –
+  das ist unproblematisch, da Quiz-Distraktoren nur innerhalb einer Liste
+  gewählt werden.
 - **`conceptId`**: englischer, sprachneutraler Slug (z. B. `plate`, `cat`,
   `kitchen`). Verbindet später gleiche Bilder über Sprachen hinweg – "Teller"
   (de) und "plate" (en) teilen sich dasselbe Bild, wenn ihre `conceptId`
@@ -91,6 +97,12 @@ Datenstruktur pro Liste:
 
 ## Sonstiges
 
+- **Schriftart**: Poppins (statt Systemschrift), lokal in `fonts/` gehostet
+  (kein Google-Fonts-CDN zur Laufzeit, aus Datenschutzgründen). Bewusst
+  gewählt wegen des einstöckigen, druckschrift-/schulschriftartigen "a" (statt
+  des doppelstöckigen "a" der Systemschrift) – besser lesbar für Schüler:innen.
+  Ähnelt optisch Century Gothic, ist aber frei lizenziert (SIL Open Font
+  License) und daher selbst hostbar.
 - Sprachausgabe: Web Speech API, `de-DE`, ausgelöst nur durch Tastendruck
   (iOS-Safari-Vorgabe). Rate `0.78` für gut verständliches, nicht zu schnelles
   Vorlesen.
