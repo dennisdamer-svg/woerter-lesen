@@ -122,6 +122,13 @@ Datenstruktur pro Liste:
     primär lesen, Audio ist nur Zusatzhilfe. Ein Wort braucht ein Bild, damit
     dieser Modus für seine Liste erscheint – ohne durchgängige Bilder wird der
     Button automatisch ausgeblendet (`hasImages()` in `app.js`).
+  - Im Blitzlesen-Modus ("⚡ Blitzlesen") wird das Wort nach Antippen von
+    "Bereit" (oder Leertaste) nur kurz eingeblendet (wählbare Dauer:
+    3000/1500/800/500/300/150 ms), dann folgt ein kurzer leerer/neutraler
+    Bildschirm (Maske gegen Nachbild-Effekte) und danach dieselbe
+    4-Bilder-Kontrolle wie bei der Bild-Übung - ohne das Wort nochmal zu
+    zeigen, da hier das Kurzzeitgedächtnis trainiert wird. Braucht ebenfalls
+    durchgängige Bilder in der Liste (`hasImages()`).
 
 ### Neues ARASAAC-Bild zu einem Wort hinzufügen
 

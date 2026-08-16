@@ -17,6 +17,12 @@
 
   let state = { list: null, words: [], index: 0 };
   let quizState = { list: null, order: [], index: 0, correctId: null, locked: false };
+  let blitzState = { list: null, order: [], index: 0, duration: 800, correctId: null, locked: false };
+
+  // Erhöht sich bei jedem render() - verhindert, dass ein noch laufender
+  // setTimeout (z. B. Blitzlesen-Anzeigedauer) nach einem Screen-Wechsel
+  // (z. B. Zurück zum Start) verspätet noch etwas rendert.
+  let renderGeneration = 0;
 
   const escapeHtml = (text) => String(text).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
 
@@ -42,7 +48,7 @@
     utterance.pitch = 1;
     window.speechSynthesis.speak(utterance);
   };
-  const render = (html) => { stopSpeech(); app.innerHTML = html; };
+  const render = (html) => { stopSpeech(); renderGeneration++; app.innerHTML = html; };
 
   const renderWord = (entry, showSyllables) => {
     if (!showSyllables || entry.syllables.length < 2) {
@@ -100,12 +106,15 @@
       <div class="choices">
         <button class="list-button" id="mode-read">🔤 Wort lesen<span class="list-button-count">selbst lesen, dann vorlesen lassen</span></button>
         ${hasImages(list) ? `<button class="list-button" id="mode-quiz">🖼️ Bild-Übung<span class="list-button-count">passendes Bild zum Wort finden</span></button>` : ""}
+        ${hasImages(list) ? `<button class="list-button" id="mode-blitz">⚡ Blitzlesen<span class="list-button-count">Wort kurz sehen, dann Bild wählen</span></button>` : ""}
       </div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
     app.querySelector("#mode-read").addEventListener("click", () => start(id));
     const quizButton = app.querySelector("#mode-quiz");
     if (quizButton) quizButton.addEventListener("click", () => quizStart(id));
+    const blitzButton = app.querySelector("#mode-blitz");
+    if (blitzButton) blitzButton.addEventListener("click", () => blitzChooseDuration(id));
   }
 
   function start(id) { const list = findList(id); if (!list) return home(); state = { list, words: shuffle(list.words), index: 0 }; practice(); }
@@ -167,7 +176,8 @@
         if (button.dataset.id === quizState.correctId) {
           quizState.locked = true;
           button.classList.add("correct");
-          setTimeout(() => { quizState.index++; quizRound(); }, 800);
+          const gen = renderGeneration;
+          setTimeout(() => { if (renderGeneration === gen) { quizState.index++; quizRound(); } }, 800);
         } else {
           button.classList.add("wrong");
           setTimeout(() => button.classList.remove("wrong"), 500);
@@ -179,6 +189,107 @@
   function quizComplete() {
     render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Bilder richtig zugeordnet.</p><button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
     app.querySelector("#again").addEventListener("click", () => quizStart(quizState.list.id));
+    app.querySelector("#home").addEventListener("click", home);
+  }
+
+  // --- Blitzlesen: Wort erscheint kurz, verschwindet, dann Kontrolle per Bild ---
+
+  const BLITZ_DURATIONS = [3000, 1500, 800, 500, 300, 150];
+
+  function blitzChooseDuration(id) {
+    const list = findList(id);
+    if (!list) return home();
+    const items = BLITZ_DURATIONS.map((ms) => `<button class="list-button" data-duration="${ms}"><span class="list-button-name">${ms} ms</span><span class="list-button-count">${blitzDurationLabel(ms)}</span></button>`).join("");
+    render(`<section class="screen">
+      <div class="topbar"><button id="home">← Start</button><h1>${escapeHtml(list.name)}</h1></div>
+      <p class="intro">Wie lange soll das Wort zu sehen sein?</p>
+      <div class="choices">${items}</div>
+    </section>`);
+    app.querySelector("#home").addEventListener("click", home);
+    app.querySelectorAll("[data-duration]").forEach((button) => button.addEventListener("click", () => blitzStart(id, Number(button.dataset.duration))));
+  }
+
+  const blitzDurationLabel = (ms) => ({ 3000: "sehr langsam", 1500: "langsam", 800: "mittel", 500: "zügig", 300: "schnell", 150: "sehr schnell" }[ms] || "");
+
+  function blitzStart(id, duration) {
+    const list = findList(id);
+    if (!list) return home();
+    blitzState = { list, order: shuffle(list.words), index: 0, duration, correctId: null, locked: false };
+    blitzReady();
+  }
+
+  function blitzReady() {
+    if (blitzState.index >= blitzState.order.length) return blitzComplete();
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
+      <div class="word-card"><button id="ready" class="primary speak" aria-label="Bereit - Wort anzeigen">⚡ Bereit</button></div>
+      <p class="hint">Leertaste drücken oder Bereit antippen, dann genau hinschauen.</p>
+    </section>`);
+    const onKey = (e) => { if (e.code === "Space") { e.preventDefault(); go(); } };
+    const go = () => { document.removeEventListener("keydown", onKey); blitzShowWord(); };
+    document.addEventListener("keydown", onKey);
+    app.querySelector("#ready").addEventListener("click", go);
+    app.querySelector("#home").addEventListener("click", () => { document.removeEventListener("keydown", onKey); home(); });
+  }
+
+  function blitzShowWord() {
+    const settings = getSettings();
+    const entry = blitzState.order[blitzState.index];
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
+      <div class="word-card"><div class="word">${renderWord(entry, settings.syllables)}</div></div>
+    </section>`);
+    app.querySelector("#home").addEventListener("click", home);
+    const gen = renderGeneration;
+    setTimeout(() => { if (renderGeneration === gen) blitzMask(); }, blitzState.duration);
+  }
+
+  // Kurzer leerer/neutraler Bildschirm zwischen Wort und Bild-Kontrolle, damit
+  // kein Nachbild des Worts die Bildauswahl beeinflusst.
+  function blitzMask() {
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
+      <div class="word-card"></div>
+    </section>`);
+    app.querySelector("#home").addEventListener("click", home);
+    const gen = renderGeneration;
+    setTimeout(() => { if (renderGeneration === gen) blitzQuiz(); }, 300);
+  }
+
+  function blitzQuiz() {
+    const entry = blitzState.order[blitzState.index];
+    const distractors = shuffle(blitzState.list.words.filter((w) => w.id !== entry.id)).slice(0, 3);
+    const options = shuffle([entry, ...distractors]);
+    blitzState.correctId = entry.id;
+    blitzState.locked = false;
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
+      <p class="intro">Welches Bild passt zum Wort?</p>
+      <div class="quiz-grid">
+        ${options.map((opt, i) => `<button class="quiz-option" data-id="${escapeHtml(opt.id)}" aria-label="Bildoption ${i + 1}"><img src="${escapeHtml(opt.image.url)}" alt="" /></button>`).join("")}
+      </div>
+      ${attributionLine(entry.image)}
+    </section>`);
+    app.querySelector("#home").addEventListener("click", home);
+    app.querySelectorAll(".quiz-option").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (blitzState.locked) return;
+        if (button.dataset.id === blitzState.correctId) {
+          blitzState.locked = true;
+          button.classList.add("correct");
+          const gen = renderGeneration;
+          setTimeout(() => { if (renderGeneration === gen) { blitzState.index++; blitzReady(); } }, 800);
+        } else {
+          button.classList.add("wrong");
+          setTimeout(() => button.classList.remove("wrong"), 500);
+        }
+      });
+    });
+  }
+
+  function blitzComplete() {
+    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Wörter erkannt.</p><button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
+    app.querySelector("#again").addEventListener("click", () => blitzStart(blitzState.list.id, blitzState.duration));
     app.querySelector("#home").addEventListener("click", home);
   }
 
