@@ -20,6 +20,16 @@ mehr, kein `localStorage` für Inhalte). `localStorage` wird nur noch für die
 Silbenschrift-Einstellung verwendet (pro Gerät, keine Inhalte). Wortlisten
 werden ausschließlich über `wordlists.js` im Code gepflegt.
 
+## Aktuelle Listen (Stand: siehe `wordlists.js`)
+
+- **Küche** (14), **Landwirtschaft** (10), **Berufe** (10) – ursprüngliche Listen
+- **Essen & Trinken** (15), **Im Restaurant** (17), **Am Tisch** (16) – ersetzen
+  die frühere Einzelliste "Gastronomie", digitalisiert aus vorhandenen
+  Lernkarten (ursprünglich Metacom-Bilder, hier durch ARASAAC ersetzt) und
+  nach Themen statt nach Kartenset-Nummer sortiert. Bewusst etwas größer als
+  die Faustregel 6–10 Wörter/Liste – lässt sich bei Bedarf später weiter
+  aufteilen, sobald einzelne Themen wachsen.
+
 ## Wortlisten pflegen (`wordlists.js`)
 
 Datenstruktur pro Liste:
@@ -46,15 +56,21 @@ Datenstruktur pro Liste:
 - **`id`**: `<lang>-<slug>`. Slug = Wort kleingeschrieben, `ä→ae ö→oe ü→ue ß→ss`,
   keine Sonderzeichen/Leerzeichen. Muss über alle Sprachen hinweg eindeutig sein.
   Ausnahme: Taucht dasselbe Wort (gleiche Bedeutung, gleiches Bild) bewusst in
-  mehreren Listen auf (z. B. "Teller"/"Glas"/"Tasse" in Küche **und**
-  Gastronomie), wird derselbe Eintrag (gleiche `id`) einfach wiederverwendet –
-  das ist unproblematisch, da Quiz-Distraktoren nur innerhalb einer Liste
-  gewählt werden.
+  mehreren Listen auf (z. B. "Teller"/"Glas"/"Tasse"/"Löffel" in Küche **und**
+  Am Tisch, "Koch" in Berufe **und** Im Restaurant), wird derselbe Eintrag
+  (gleiche `id`) einfach wiederverwendet – das ist unproblematisch, da
+  Quiz-Distraktoren nur innerhalb einer Liste gewählt werden.
 - **`conceptId`**: englischer, sprachneutraler Slug (z. B. `plate`, `cat`,
   `kitchen`). Verbindet später gleiche Bilder über Sprachen hinweg – "Teller"
   (de) und "plate" (en) teilen sich dasselbe Bild, wenn ihre `conceptId`
   übereinstimmt. Bei Berufsbezeichnungen die geschlechtsneutrale Berufs-ID
-  verwenden (z. B. "Lehrerin" → `teacher`, nicht `teacher_f`).
+  verwenden (z. B. "Lehrerin" → `teacher`, nicht `teacher_f`) – **außer**
+  beide Genusformen desselben Berufs kommen gleichzeitig in derselben Liste
+  vor und brauchen unterschiedliche (geschlechtsspezifische) Bilder; dann
+  eigene `conceptId`s mit `_f`-Suffix verwenden (z. B. "Kellner" → `waiter`,
+  "Kellnerin" → `waiter_f`), da `conceptId` aktuell 1:1 den Bilddateinamen
+  bestimmt und sich zwei Wörter kein Bild teilen können, wenn sie
+  unterschiedlich aussehen müssen.
 - **`syllables`**: nach deutschen Trennregeln (Duden). Zusammengesetzte Wörter
   (Komposita, z. B. "Tierärztin" → Tier-ärz-tin) können bei automatischer
   Trennung danebenliegen – von Hand prüfen.
