@@ -124,7 +124,9 @@ Datenstruktur pro Liste:
     Button automatisch ausgeblendet (`hasImages()` in `app.js`).
   - Im Blitzlesen-Modus ("⚡ Blitzlesen") wird das Wort nach Antippen von
     "Bereit" (oder Leertaste) nur kurz eingeblendet (wählbare Dauer:
-    3000/1500/800/500/300/150 ms), dann folgt ein kurzer leerer/neutraler
+    3000/1500/800/500/300/150 ms, ausgewählt über eine Reihe aus 6 Symbolen
+    -Schnecke/Fußgänger/Fahrrad/Auto/Hase/Rakete- statt Millisekundenzahlen;
+    `BLITZ_SPEEDS` in `app.js`), dann folgt ein kurzer leerer/neutraler
     Bildschirm (Maske gegen Nachbild-Effekte) und danach dieselbe
     4-Bilder-Kontrolle wie bei der Bild-Übung - ohne das Wort nochmal zu
     zeigen, da hier das Kurzzeitgedächtnis trainiert wird. Braucht ebenfalls

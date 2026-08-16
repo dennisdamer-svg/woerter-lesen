@@ -194,22 +194,30 @@
 
   // --- Blitzlesen: Wort erscheint kurz, verschwindet, dann Kontrolle per Bild ---
 
-  const BLITZ_DURATIONS = [3000, 1500, 800, 500, 300, 150];
+  // Tempo wird bewusst nicht in Millisekunden angezeigt (sagt Schüler:innen
+  // nichts), sondern als aufsteigende "wird schneller"-Bildergeschichte.
+  // `hint` ist nur für aria-label (Barrierefreiheit), nirgends sichtbar.
+  const BLITZ_SPEEDS = [
+    { ms: 3000, icon: "🐌", label: "Schnecke", hint: "sehr langsam" },
+    { ms: 1500, icon: "🚶", label: "Fußgänger", hint: "langsam" },
+    { ms: 800, icon: "🚲", label: "Fahrrad", hint: "mittel" },
+    { ms: 500, icon: "🚗", label: "Auto", hint: "zügig" },
+    { ms: 300, icon: "🐇", label: "Hase", hint: "schnell" },
+    { ms: 150, icon: "🚀", label: "Rakete", hint: "sehr schnell" },
+  ];
 
   function blitzChooseDuration(id) {
     const list = findList(id);
     if (!list) return home();
-    const items = BLITZ_DURATIONS.map((ms) => `<button class="list-button" data-duration="${ms}"><span class="list-button-name">${ms} ms</span><span class="list-button-count">${blitzDurationLabel(ms)}</span></button>`).join("");
+    const items = BLITZ_SPEEDS.map((s) => `<button class="speed-option" data-duration="${s.ms}" aria-label="${escapeHtml(s.label)} - ${escapeHtml(s.hint)}"><span class="speed-icon">${s.icon}</span><span class="speed-label">${escapeHtml(s.label)}</span></button>`).join("");
     render(`<section class="screen">
       <div class="topbar"><button id="home">← Start</button><h1>${escapeHtml(list.name)}</h1></div>
-      <p class="intro">Wie lange soll das Wort zu sehen sein?</p>
-      <div class="choices">${items}</div>
+      <p class="intro">Wie schnell soll das Wort verschwinden?</p>
+      <div class="speed-grid">${items}</div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
     app.querySelectorAll("[data-duration]").forEach((button) => button.addEventListener("click", () => blitzStart(id, Number(button.dataset.duration))));
   }
-
-  const blitzDurationLabel = (ms) => ({ 3000: "sehr langsam", 1500: "langsam", 800: "mittel", 500: "zügig", 300: "schnell", 150: "sehr schnell" }[ms] || "");
 
   function blitzStart(id, duration) {
     const list = findList(id);
