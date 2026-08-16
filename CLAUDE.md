@@ -22,13 +22,39 @@ werden ausschließlich über `wordlists.js` im Code gepflegt.
 
 ## Aktuelle Listen (Stand: siehe `wordlists.js`)
 
-- **Küche** (14), **Landwirtschaft** (10), **Berufe** (10) – ursprüngliche Listen
-- **Essen & Trinken** (15), **Im Restaurant** (17), **Am Tisch** (16) – ersetzen
-  die frühere Einzelliste "Gastronomie", digitalisiert aus vorhandenen
+- **Küche** (14), **Landwirtschaft** (10), **Berufe** (10) – direkte Listen
+  auf oberster Ebene der Startseite.
+- **Gastronomie** – Gruppe (`type: "group"`) auf der Startseite, führt zu
+  einer Unterseite mit den drei Listen **Essen & Trinken** (15), **Im
+  Restaurant** (17), **Am Tisch** (16). Digitalisiert aus vorhandenen
   Lernkarten (ursprünglich Metacom-Bilder, hier durch ARASAAC ersetzt) und
   nach Themen statt nach Kartenset-Nummer sortiert. Bewusst etwas größer als
   die Faustregel 6–10 Wörter/Liste – lässt sich bei Bedarf später weiter
   aufteilen, sobald einzelne Themen wachsen.
+
+### Gruppen (mehrstufige Startseite)
+
+`window.WORDLISTS` ist eine Mischung aus direkten Listen und Gruppen:
+
+```js
+{ id: "gastronomie", type: "group", name: "Gastronomie", icon: {...}, children: [
+  { id: "essen_trinken", name: "Essen & Trinken", icon: {...}, words: [...] },
+  // ...
+] }
+```
+
+Eine Gruppe hat `children` statt `words` und `type: "group"`. Auf der
+Startseite führt ein Klick auf eine Gruppe zu einer Zwischenseite
+("Thema auswählen") mit den `children` als normalen Listen-Buttons -
+implementiert über `chooseGroup()` in `app.js`. `findList(id)` in `app.js`
+sucht sowohl direkte Listen als auch Listen innerhalb von Gruppen, damit
+Üben/Bild-Übung unabhängig von der Verschachtelung funktionieren.
+
+Jede Liste/Gruppe kann ein optionales `icon` haben (gleiche Bild-Struktur wie
+bei Wörtern), das auf dem jeweiligen Auswahl-Button als kleines Vorschaubild
+erscheint. Wo möglich ein Bild wiederverwenden, das ohnehin schon zu einem
+Wort in der Liste gehört (z. B. Küche-Icon = Bild des Worts "Küche") - spart
+Pflegeaufwand und hält die Bilderanzahl klein.
 
 ## Wortlisten pflegen (`wordlists.js`)
 
@@ -101,6 +127,12 @@ Datenstruktur pro Liste:
 2. Bild herunterladen: `curl -sS -o images/pictograms/<conceptId>.png "https://static.arasaac.org/pictograms/<id>/<id>_500.png"`
    und **visuell prüfen** (z. B. mit dem Read-Tool), ob es wirklich passt.
 3. In `wordlists.js` beim Wort `image: arasaac("<conceptId>", <id>)` setzen.
+
+Falls kein einzelnes ARASAAC-Bild passt, können zwei Piktogramme lokal mit
+Pillow (Python) zu einem Bild kombiniert werden (Beispiel: "Getränkekarte" =
+Menü-Vorlage 5513 + Getränke-Bild 4575, mit `Image.alpha_composite` in das
+weiße Oval der Vorlage montiert). In dem Fall `arasaacId` als String mit
+beiden Quell-IDs dokumentieren, z. B. `arasaac("drink_menu", "5513+4575 (kombiniert)")`.
 
 ### Neue Wörter/Listen hinzufügen
 

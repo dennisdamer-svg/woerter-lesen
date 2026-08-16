@@ -19,8 +19,11 @@ h1 { font-size: clamp(2rem, 8vw, 3.4rem); text-align: center; }
 h2 { font-size: clamp(1.5rem, 5vw, 2.1rem); }
 .intro, .hint { text-align: center; font-size: clamp(1.08rem, 3.5vw, 1.35rem); line-height: 1.45; }
 .choices { display: grid; gap: 16px; }
-.list-button { min-height: 76px; text-align: left; display: flex; align-items: center; justify-content: space-between; }
-.list-button span { font-size: .85em; font-weight: 650; }
+.list-button { min-height: 76px; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.list-button-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.list-button-name { overflow-wrap: anywhere; }
+.list-button-count { flex-shrink: 0; font-size: .85em; font-weight: 650; }
+.list-icon { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
 .primary { background: #0b6e4f; color: #fff; border-color: #064332; }
 .secondary { background: #dcecff; }
 .toggle[aria-pressed="true"] { background: #dcecff; }

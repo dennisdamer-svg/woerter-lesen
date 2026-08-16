@@ -6,8 +6,14 @@
   // dieser Datei geladen wird. app.js enthält ausschließlich App-Logik/UI,
   // keine Wort-Inhalte - siehe CLAUDE.md für die Datenstruktur.
   const wordlists = window.WORDLISTS || [];
-  const allLists = () => wordlists;
+  // wordlists.js mischt direkte Wortlisten mit Gruppen (type: "group", z. B.
+  // "Gastronomie"), die mehrere Listen bündeln. findList() sucht unabhängig
+  // davon, ob eine Liste direkt auf oberster Ebene steht oder in einer
+  // Gruppe steckt - Üben/Quiz läuft immer auf einer einzelnen Liste.
+  const flatLists = () => wordlists.flatMap((entry) => (entry.type === "group" ? entry.children : [entry]));
+  const findList = (id) => flatLists().find((item) => item.id === id);
   const hasImages = (list) => list.words.every((w) => w.image && w.image.url);
+  const iconImg = (icon) => (icon && icon.url ? `<img class="list-icon" src="${escapeHtml(icon.url)}" alt="" />` : "");
 
   let state = { list: null, words: [], index: 0 };
   let quizState = { list: null, order: [], index: 0, correctId: null, locked: false };
@@ -49,9 +55,14 @@
   // wird angezeigt, sobald irgendwo ein Bild mit `attribution` sichtbar ist.
   const attributionLine = (image) => (image && image.attribution ? `<p class="attribution">Bildquelle: ${escapeHtml(image.attribution)}${image.license ? ` (${escapeHtml(image.license)})` : ""}</p>` : "");
 
+  const listButton = (entry, count) => `<button class="list-button" data-open="${escapeHtml(entry.id)}"><span class="list-button-left">${iconImg(entry.icon)}<span class="list-button-name">${escapeHtml(entry.name)}</span></span><span class="list-button-count">${count} Wörter&nbsp; →</span></button>`;
+
   function home() {
     const settings = getSettings();
-    const items = allLists().map((list) => `<button class="list-button" data-open="${escapeHtml(list.id)}">${escapeHtml(list.name)} <span>${list.words.length} Wörter&nbsp; →</span></button>`).join("");
+    const items = wordlists.map((entry) => {
+      const count = entry.type === "group" ? entry.children.reduce((sum, c) => sum + c.words.length, 0) : entry.words.length;
+      return listButton(entry, count);
+    }).join("");
     render(`<section class="screen">
       <h1>Wörter lesen</h1>
       <p class="intro">Lies ein Wort laut. Tippe dann auf <strong>Vorlesen</strong> und überprüfe dich.</p>
@@ -59,19 +70,36 @@
       <h2>Wortliste auswählen</h2>
       <div class="choices">${items}</div>
     </section>`);
-    app.querySelectorAll("[data-open]").forEach((button) => button.addEventListener("click", () => chooseMode(button.dataset.open)));
+    app.querySelectorAll("[data-open]").forEach((button) => button.addEventListener("click", () => {
+      const entry = wordlists.find((item) => item.id === button.dataset.open);
+      if (entry && entry.type === "group") chooseGroup(entry.id);
+      else chooseMode(button.dataset.open);
+    }));
     app.querySelector("#toggle-syllables").addEventListener("click", () => { setSettings({ ...settings, syllables: !settings.syllables }); home(); });
   }
 
+  function chooseGroup(id) {
+    const group = wordlists.find((entry) => entry.id === id && entry.type === "group");
+    if (!group) return home();
+    const items = group.children.map((list) => listButton(list, list.words.length)).join("");
+    render(`<section class="screen">
+      <div class="topbar"><button id="home">← Start</button><h1>${escapeHtml(group.name)}</h1></div>
+      <h2>Thema auswählen</h2>
+      <div class="choices">${items}</div>
+    </section>`);
+    app.querySelector("#home").addEventListener("click", home);
+    app.querySelectorAll("[data-open]").forEach((button) => button.addEventListener("click", () => chooseMode(button.dataset.open)));
+  }
+
   function chooseMode(id) {
-    const list = allLists().find((item) => item.id === id);
+    const list = findList(id);
     if (!list) return home();
     render(`<section class="screen">
       <div class="topbar"><button id="home">← Start</button><h1>${escapeHtml(list.name)}</h1></div>
       <p class="intro">Wie möchtest du üben?</p>
       <div class="choices">
-        <button class="list-button" id="mode-read">🔤 Wort lesen<span>selbst lesen, dann vorlesen lassen</span></button>
-        ${hasImages(list) ? `<button class="list-button" id="mode-quiz">🖼️ Bild-Übung<span>passendes Bild zum Wort finden</span></button>` : ""}
+        <button class="list-button" id="mode-read">🔤 Wort lesen<span class="list-button-count">selbst lesen, dann vorlesen lassen</span></button>
+        ${hasImages(list) ? `<button class="list-button" id="mode-quiz">🖼️ Bild-Übung<span class="list-button-count">passendes Bild zum Wort finden</span></button>` : ""}
       </div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
@@ -80,7 +108,7 @@
     if (quizButton) quizButton.addEventListener("click", () => quizStart(id));
   }
 
-  function start(id) { const list = allLists().find((item) => item.id === id); if (!list) return home(); state = { list, words: shuffle(list.words), index: 0 }; practice(); }
+  function start(id) { const list = findList(id); if (!list) return home(); state = { list, words: shuffle(list.words), index: 0 }; practice(); }
 
   function practice() {
     if (state.index >= state.words.length) return complete();
@@ -106,7 +134,7 @@
   // --- Bild-Übung: Wort wird gezeigt, Schüler:in wählt das passende Bild aus 4 Alternativen ---
 
   function quizStart(id) {
-    const list = allLists().find((item) => item.id === id);
+    const list = findList(id);
     if (!list) return home();
     quizState = { list, order: shuffle(list.words), index: 0, correctId: null, locked: false };
     quizRound();
