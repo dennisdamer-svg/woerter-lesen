@@ -163,6 +163,18 @@ beiden Quell-IDs dokumentieren, z. B. `arasaac("drink_menu", "5513+4575 (kombini
   des doppelstöckigen "a" der Systemschrift) – besser lesbar für Schüler:innen.
   Ähnelt optisch Century Gothic, ist aber frei lizenziert (SIL Open Font
   License) und daher selbst hostbar.
+- **Bildschirm-Layout**: `.screen` ist auf `100dvh` fixiert (nicht nur
+  `min-height`) und die flexiblen Bereiche (`.word-card`, `.quiz-grid`) haben
+  `min-height: 0`, damit sich alles ins iPad-Display einpasst, ohne dass
+  gescrollt werden muss. `overflow-y: auto` bleibt als Sicherheitsnetz für
+  seltene Extremfälle.
+- **Wort-Anzeige bricht nie um**: `.word`/`.quiz-word` haben `white-space:
+  nowrap`; `fitTextToWidth()`/`scheduleFit()` in `app.js` verkleinern die
+  Schrift per JS so weit, bis ein Wort in eine Zeile passt (z. B. bei langen
+  Wörtern wie "Gartenschere"). `scheduleFit()` prüft zusätzlich nochmal nach
+  `document.fonts.ready`, weil Poppins asynchron nachlädt (`font-display:
+  swap`) und die anfängliche Messung sonst mit der schmaleren Systemschrift
+  stattfindet.
 - Sprachausgabe: Web Speech API, `de-DE`, ausgelöst nur durch Tastendruck
   (iOS-Safari-Vorgabe). Rate `0.78` für gut verständliches, nicht zu schnelles
   Vorlesen.

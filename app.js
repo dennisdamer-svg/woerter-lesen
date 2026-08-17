@@ -50,6 +50,31 @@
   };
   const render = (html) => { stopSpeech(); renderGeneration++; app.innerHTML = html; };
 
+  // Verkleinert die Schrift eines Wort-Elements so lange, bis es in einer
+  // Zeile passt (kein Umbruch mitten im Wort) - setzt voraus, dass das
+  // Element per CSS white-space:nowrap + width:100% hat (siehe .word/.quiz-word).
+  const fitTextToWidth = (el, minFontSize = 26) => {
+    if (!el) return;
+    let fontSize = parseFloat(getComputedStyle(el).fontSize);
+    let guard = 0;
+    while (el.scrollWidth > el.clientWidth && fontSize > minFontSize && guard < 60) {
+      fontSize -= 2;
+      el.style.fontSize = `${fontSize}px`;
+      guard++;
+    }
+  };
+  // Poppins lädt asynchron (font-display: swap); direkt nach dem Rendern ist
+  // oft noch die etwas schmalere Systemschrift sichtbar, wodurch die Anpassung
+  // zu wenig verkleinert. Nach dem Laden der Schrift wird deshalb nochmal
+  // nachjustiert - el kann zu dem Zeitpunkt bereits durch einen Screen-Wechsel
+  // ersetzt sein, dann ist der Aufruf einfach wirkungslos.
+  const scheduleFit = (el, minFontSize) => {
+    fitTextToWidth(el, minFontSize);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => fitTextToWidth(el, minFontSize));
+    }
+  };
+
   const renderWord = (entry, showSyllables) => {
     if (!showSyllables || entry.syllables.length < 2) {
       return `<span class="syll syll-a">${escapeHtml(entry.word)}</span>`;
@@ -132,6 +157,7 @@
       <p class="hint">Erst selbst lesen, dann zum Überprüfen tippen.</p>
       <div class="nav"><button id="back" ${state.index === 0 ? "disabled" : ""}>← Zurück</button><button id="next" class="secondary">${state.index === state.words.length - 1 ? "Fertig" : "Weiter →"}</button></div>
     </section>`);
+    scheduleFit(app.querySelector(".word"));
     app.querySelector("#home").addEventListener("click", home);
     app.querySelector("#speak").addEventListener("click", () => speak(entry.word));
     app.querySelector("#back").addEventListener("click", () => { if (state.index) { state.index--; practice(); } });
@@ -168,6 +194,7 @@
         <button id="speak" class="speak-mini" aria-label="Das Wort ${escapeHtml(target.word)} vorlesen">🔊</button>
       </div>
     </section>`);
+    scheduleFit(app.querySelector(".quiz-word"));
     app.querySelector("#home").addEventListener("click", home);
     app.querySelector("#speak").addEventListener("click", () => speak(target.word));
     app.querySelectorAll(".quiz-option").forEach((button) => {
@@ -247,6 +274,7 @@
       <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
       <div class="word-card"><div class="word">${renderWord(entry, settings.syllables)}</div></div>
     </section>`);
+    scheduleFit(app.querySelector(".word"));
     app.querySelector("#home").addEventListener("click", home);
     const gen = renderGeneration;
     setTimeout(() => { if (renderGeneration === gen) blitzMask(); }, blitzState.duration);

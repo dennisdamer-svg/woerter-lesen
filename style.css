@@ -13,7 +13,11 @@ body { margin: 0; min-height: 100vh; }
 button { min-height: 62px; border: 3px solid #102a43; border-radius: 16px; padding: 14px 20px; background: #fff; color: #102a43; font-weight: 800; font-size: clamp(1.05rem, 3vw, 1.35rem); cursor: pointer; touch-action: manipulation; font: inherit; }
 button:active { transform: scale(.98); }
 button:focus-visible { outline: 5px solid #f5a623; outline-offset: 3px; }
-.screen { width: min(100%, 900px); min-height: 100vh; margin: auto; padding: max(24px, env(safe-area-inset-top)) clamp(20px, 5vw, 52px) max(28px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 22px; }
+/* Höhe an den Bildschirm gekoppelt (nicht nur min-height), damit die
+   flexiblen Bereiche (word-card/quiz-grid) sich einpassen statt die Seite
+   scrollbar zu machen - Ziel: alles passt ohne Scrollen aufs iPad.
+   overflow-y:auto bleibt als Sicherheitsnetz für seltene Extremfälle. */
+.screen { width: min(100%, 900px); height: 100vh; height: 100dvh; overflow-y: auto; margin: auto; padding: max(16px, env(safe-area-inset-top)) clamp(20px, 5vw, 52px) max(20px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: clamp(12px, 2.5vh, 22px); }
 h1, h2, p { margin: 0; }
 h1 { font-size: clamp(2rem, 8vw, 3.4rem); text-align: center; }
 h2 { font-size: clamp(1.5rem, 5vw, 2.1rem); }
@@ -30,8 +34,12 @@ h2 { font-size: clamp(1.5rem, 5vw, 2.1rem); }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .topbar button { min-height: 54px; padding: 10px 15px; }
 .progress { font-size: clamp(1.05rem, 3vw, 1.3rem); font-weight: 800; text-align: center; }
-.word-card { flex: 1; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; border: 5px solid #102a43; border-radius: 28px; background: #fff; text-align: center; box-shadow: 0 7px 0 #b9d7f4; }
-.word { overflow-wrap: anywhere; font-size: clamp(3.25rem, 14vw, 7.5rem); font-weight: 900; line-height: 1.05; }
+.word-card { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; border: 5px solid #102a43; border-radius: 28px; background: #fff; text-align: center; box-shadow: 0 7px 0 #b9d7f4; }
+/* white-space:nowrap + width:100% sind Voraussetzung dafür, dass das
+   JS (fitTextToWidth in app.js) zuverlässig erkennen kann, ob das Wort in
+   eine Zeile passt, und die Schriftgröße bei Bedarf verkleinert - Wörter
+   sollen nie umbrechen. */
+.word { width: 100%; white-space: nowrap; font-size: clamp(3.25rem, 14vw, 7.5rem); font-weight: 900; line-height: 1.05; }
 .syll-a { color: #102a43; }
 .syll-b { color: #9c1c1c; }
 .speak { width: 100%; min-height: 92px; font-size: clamp(1.35rem, 5vw, 1.85rem); }
@@ -39,9 +47,9 @@ h2 { font-size: clamp(1.5rem, 5vw, 2.1rem); }
 .nav button { min-height: 74px; }
 .finish { text-align: center; display: grid; gap: 18px; align-content: center; flex: 1; }
 .attribution { font-size: .8rem; color: #7290ab; margin: 0; }
-.quiz-word { text-align: center; font-size: clamp(2.1rem, 7vw, 3.6rem); font-weight: 900; line-height: 1.1; }
-.quiz-grid { flex: 1; min-height: 320px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; }
-.quiz-option { min-height: 130px; display: flex; align-items: center; justify-content: center; padding: 10px; }
+.quiz-word { width: 100%; white-space: nowrap; text-align: center; font-size: clamp(2.1rem, 7vw, 3.6rem); font-weight: 900; line-height: 1.1; }
+.quiz-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; }
+.quiz-option { min-height: 0; display: flex; align-items: center; justify-content: center; padding: 10px; }
 .quiz-option img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .quiz-option.correct { background: #d7f5e3; border-color: #0b6e4f; }
 .quiz-option.wrong { background: #fbe1e1; border-color: #9c1c1c; }
