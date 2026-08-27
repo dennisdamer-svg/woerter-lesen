@@ -222,10 +222,12 @@ window.WORDLISTS = [
     ],
   },
   {
-    id: "bildergeschichten",
-    name: "Bildergeschichten",
+    id: "neue_freundin",
+    name: "Neue Freundin",
     lang: "de",
-    icon: arasaac("friend", 8487),
+    // Eigenes Bild (kein ARASAAC) speziell für diese Bildergeschichte -
+    // daher ohne arasaac()-Hilfsfunktion und ohne Quellenangabe.
+    icon: { source: "custom", url: "images/pictograms/new_friend.jpg", license: null, attribution: null },
     words: [
       { id: "de-freund", word: "Freund", syllables: ["Freund"], conceptId: "friend", image: arasaac("friend", 8487) },
       { id: "de-freundin", word: "Freundin", syllables: ["Freun", "din"], conceptId: "friend_f", image: arasaac("friend_f", 8486) },
