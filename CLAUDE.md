@@ -68,6 +68,7 @@ Datenstruktur pro Liste:
   id: "kueche",        // Listen-ID (intern zur Auswahl verwendet)
   name: "Küche",       // angezeigter Listenname
   lang: "de",           // Sprachcode, aktuell nur "de", später z. B. "en"
+  spelling: false,      // optional: schaltet "✍️ Wort schreiben" frei (s. u.)
   words: [
     {
       id: "de-teller",           // eindeutig pro Sprache: <lang>-<slug(wort)>
@@ -131,6 +132,29 @@ Datenstruktur pro Liste:
     4-Bilder-Kontrolle wie bei der Bild-Übung - ohne das Wort nochmal zu
     zeigen, da hier das Kurzzeitgedächtnis trainiert wird. Braucht ebenfalls
     durchgängige Bilder in der Liste (`hasImages()`).
+  - Im Modus "✍️ Wort schreiben" wird nur das Bild gezeigt (kein Wort), dazu
+    ein kleiner Vorlesen-Button - die Schüler:in tippt das Wort selbst in ein
+    Textfeld, inklusive korrekter Groß-/Kleinschreibung (exakter String-
+    Vergleich, kein Trimmen/Normalisieren). Nach "Weiter" erscheint eine
+    Rückmeldung: bei richtiger Schreibweise das Wort in Grün, sonst ein
+    Vergleich "Deine Antwort" (rot) vs. "Richtig wäre" (grün) nebeneinander.
+    Ein "💡 Tipp"-Button deckt bei gedrückt gehaltenem Finger das Wort
+    Buchstabe für Buchstabe auf (`HINT_STEP_MS` in `app.js`, Pointer-Events)
+    und verschwindet beim Loslassen wieder komplett - Ziel: kurzer Anstoß,
+    nicht Vorsagen. Dieser Modus ist bewusst **nicht** über `hasImages()`
+    allein gesteuert, sondern zusätzlich über das Listen-Flag `spelling:
+    true` in `wordlists.js` - aktuell nur bei "Neue Freundin" gesetzt, da
+    Rechtschreibübung fachlich mehr voraussetzt als Bilder-Zuordnen und
+    bewusst nicht automatisch für jede Liste erscheinen soll.
+
+### Auswertung am Rundenende
+
+Bild-Übung, Blitzlesen und Wort schreiben zeigen auf ihrem Abschluss-Screen
+zusätzlich eine Zeile "X von Y beim ersten Versuch richtig" (`scoreLine()` in
+`app.js`) - gezählt wird nur, ob die jeweilige Runde beim allerersten Tipp/
+Eingabeversuch stimmte, nicht nach Korrekturversuchen. Der reine Lesemodus
+("🔤 Wort lesen") hat keine Selbstkontrolle durch die App und bekommt daher
+bewusst keine Auswertungszeile.
 
 ### Neues ARASAAC-Bild zu einem Wort hinzufügen
 

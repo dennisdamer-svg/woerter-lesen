@@ -64,3 +64,21 @@ h2 { font-size: clamp(1.5rem, 5vw, 2.1rem); }
 @media (max-width: 480px) {
   .speed-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* Wort schreiben */
+.write-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+#write-form { display: flex; flex-direction: column; gap: 12px; }
+.hint-display { min-height: 1.5em; text-align: center; font-size: clamp(1.3rem, 5vw, 2rem); font-weight: 800; letter-spacing: .06em; color: #0b6e4f; }
+.write-input { width: 100%; min-height: 68px; font-size: clamp(1.3rem, 5vw, 1.9rem); font-weight: 700; text-align: center; border: 3px solid #102a43; border-radius: 16px; padding: 10px; background: #fff; color: #102a43; }
+.write-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.write-submit { width: 100%; min-height: 74px; }
+.feedback-verdict { text-align: center; font-size: clamp(1.3rem, 5vw, 1.9rem); font-weight: 800; }
+.feedback-verdict.correct { color: #0b6e4f; }
+.feedback-verdict.wrong { color: #9c1c1c; }
+.compare-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.compare-box { border: 3px solid; border-radius: 16px; padding: 14px; text-align: center; min-width: 0; }
+.compare-box.correct { border-color: #0b6e4f; background: #d7f5e3; }
+.compare-box.wrong { border-color: #9c1c1c; background: #fbe1e1; }
+.compare-label { margin: 0 0 6px; font-size: .85rem; font-weight: 650; }
+.compare-word { margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.6rem); font-weight: 800; overflow-wrap: anywhere; }
+.score { text-align: center; font-size: clamp(1.05rem, 3.5vw, 1.35rem); font-weight: 700; }

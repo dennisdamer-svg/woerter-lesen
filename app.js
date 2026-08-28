@@ -16,8 +16,9 @@
   const iconImg = (icon) => (icon && icon.url ? `<img class="list-icon" src="${escapeHtml(icon.url)}" alt="" />` : "");
 
   let state = { list: null, words: [], index: 0 };
-  let quizState = { list: null, order: [], index: 0, correctId: null, locked: false };
-  let blitzState = { list: null, order: [], index: 0, duration: 800, correctId: null, locked: false };
+  let quizState = { list: null, order: [], index: 0, correctId: null, locked: false, firstTryCorrect: 0 };
+  let blitzState = { list: null, order: [], index: 0, duration: 800, correctId: null, locked: false, firstTryCorrect: 0 };
+  let writeState = { list: null, order: [], index: 0, firstTryCorrect: 0 };
 
   // Erhöht sich bei jedem render() - verhindert, dass ein noch laufender
   // setTimeout (z. B. Blitzlesen-Anzeigedauer) nach einem Screen-Wechsel
@@ -86,6 +87,11 @@
   // wird angezeigt, sobald irgendwo ein Bild mit `attribution` sichtbar ist.
   const attributionLine = (image) => (image && image.attribution ? `<p class="attribution">Bildquelle: ${escapeHtml(image.attribution)}${image.license ? ` (${escapeHtml(image.license)})` : ""}</p>` : "");
 
+  // Auswertungszeile für die Abschluss-Screens von Bild-Übung, Blitzlesen und
+  // Wort schreiben - zählt nur Runden, die schon beim ersten Versuch richtig
+  // waren (siehe CLAUDE.md, Abschnitt Auswertung).
+  const scoreLine = (correct, total) => `<p class="score">${correct} von ${total} beim ersten Versuch richtig</p>`;
+
   const listButton = (entry, count) => `<button class="list-button" data-open="${escapeHtml(entry.id)}"><span class="list-button-left">${iconImg(entry.icon)}<span class="list-button-name">${escapeHtml(entry.name)}</span></span><span class="list-button-count">${count} Wörter&nbsp; →</span></button>`;
 
   function home() {
@@ -132,6 +138,7 @@
         <button class="list-button" id="mode-read">🔤 Wort lesen<span class="list-button-count">selbst lesen, dann vorlesen lassen</span></button>
         ${hasImages(list) ? `<button class="list-button" id="mode-quiz">🖼️ Bild-Übung<span class="list-button-count">passendes Bild zum Wort finden</span></button>` : ""}
         ${hasImages(list) ? `<button class="list-button" id="mode-blitz">⚡ Blitzlesen<span class="list-button-count">Wort kurz sehen, dann Bild wählen</span></button>` : ""}
+        ${list.spelling && hasImages(list) ? `<button class="list-button" id="mode-write">✍️ Wort schreiben<span class="list-button-count">Bild sehen, Wort selbst schreiben</span></button>` : ""}
       </div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
@@ -140,6 +147,8 @@
     if (quizButton) quizButton.addEventListener("click", () => quizStart(id));
     const blitzButton = app.querySelector("#mode-blitz");
     if (blitzButton) blitzButton.addEventListener("click", () => blitzChooseDuration(id));
+    const writeButton = app.querySelector("#mode-write");
+    if (writeButton) writeButton.addEventListener("click", () => writeStart(id));
   }
 
   function start(id) { const list = findList(id); if (!list) return home(); state = { list, words: shuffle(list.words), index: 0 }; practice(); }
@@ -171,7 +180,7 @@
   function quizStart(id) {
     const list = findList(id);
     if (!list) return home();
-    quizState = { list, order: shuffle(list.words), index: 0, correctId: null, locked: false };
+    quizState = { list, order: shuffle(list.words), index: 0, correctId: null, locked: false, firstTryCorrect: 0 };
     quizRound();
   }
 
@@ -183,6 +192,9 @@
     const options = shuffle([target, ...distractors]);
     quizState.correctId = target.id;
     quizState.locked = false;
+    // Zählt nur, wenn der erste Tipp in dieser Runde bereits richtig war -
+    // für die Auswertung am Ende (quizComplete).
+    let attempted = false;
     render(`<section class="screen">
       <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${quizState.index + 1} von ${quizState.order.length}</div></div>
       <div class="quiz-word">${renderWord(target, settings.syllables)}</div>
@@ -202,10 +214,12 @@
         if (quizState.locked) return;
         if (button.dataset.id === quizState.correctId) {
           quizState.locked = true;
+          if (!attempted) quizState.firstTryCorrect++;
           button.classList.add("correct");
           const gen = renderGeneration;
           setTimeout(() => { if (renderGeneration === gen) { quizState.index++; quizRound(); } }, 800);
         } else {
+          attempted = true;
           button.classList.add("wrong");
           setTimeout(() => button.classList.remove("wrong"), 500);
         }
@@ -214,7 +228,7 @@
   }
 
   function quizComplete() {
-    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Bilder richtig zugeordnet.</p><button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
+    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Bilder richtig zugeordnet.</p>${scoreLine(quizState.firstTryCorrect, quizState.order.length)}<button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
     app.querySelector("#again").addEventListener("click", () => quizStart(quizState.list.id));
     app.querySelector("#home").addEventListener("click", home);
   }
@@ -249,7 +263,7 @@
   function blitzStart(id, duration) {
     const list = findList(id);
     if (!list) return home();
-    blitzState = { list, order: shuffle(list.words), index: 0, duration, correctId: null, locked: false };
+    blitzState = { list, order: shuffle(list.words), index: 0, duration, correctId: null, locked: false, firstTryCorrect: 0 };
     blitzReady();
   }
 
@@ -298,6 +312,7 @@
     const options = shuffle([entry, ...distractors]);
     blitzState.correctId = entry.id;
     blitzState.locked = false;
+    let attempted = false;
     render(`<section class="screen">
       <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
       <p class="intro">Welches Bild passt zum Wort?</p>
@@ -312,10 +327,12 @@
         if (blitzState.locked) return;
         if (button.dataset.id === blitzState.correctId) {
           blitzState.locked = true;
+          if (!attempted) blitzState.firstTryCorrect++;
           button.classList.add("correct");
           const gen = renderGeneration;
           setTimeout(() => { if (renderGeneration === gen) { blitzState.index++; blitzReady(); } }, 800);
         } else {
+          attempted = true;
           button.classList.add("wrong");
           setTimeout(() => button.classList.remove("wrong"), 500);
         }
@@ -324,8 +341,89 @@
   }
 
   function blitzComplete() {
-    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Wörter erkannt.</p><button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
+    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Wörter erkannt.</p>${scoreLine(blitzState.firstTryCorrect, blitzState.order.length)}<button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
     app.querySelector("#again").addEventListener("click", () => blitzStart(blitzState.list.id, blitzState.duration));
+    app.querySelector("#home").addEventListener("click", home);
+  }
+
+  // --- Wort schreiben: Bild + Vorlesen, Schüler:in tippt das Wort selbst
+  // (inkl. Groß-/Kleinschreibung) - siehe CLAUDE.md, Abschnitt "Wort schreiben".
+
+  // Wie schnell der Tipp-Button das Wort Buchstabe für Buchstabe aufdeckt.
+  const HINT_STEP_MS = 450;
+
+  function writeStart(id) {
+    const list = findList(id);
+    if (!list) return home();
+    writeState = { list, order: shuffle(list.words), index: 0, firstTryCorrect: 0 };
+    writeRound();
+  }
+
+  function writeRound() {
+    if (writeState.index >= writeState.order.length) return writeComplete();
+    const entry = writeState.order[writeState.index];
+    let hintTimer = null;
+    // Räumt einen laufenden Tipp-Timer auf - wird beim Verlassen des Screens
+    // (Start-Button, Weiter) und beim Loslassen des Tipp-Buttons aufgerufen.
+    const stopHint = () => { if (hintTimer) { clearInterval(hintTimer); hintTimer = null; } const el = app.querySelector("#hint-display"); if (el) el.textContent = ""; };
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${writeState.index + 1} von ${writeState.order.length}</div></div>
+      <div class="word-card"><img class="write-image" src="${escapeHtml(entry.image.url)}" alt="" /></div>
+      <div class="hint-display" id="hint-display" aria-live="polite"></div>
+      <form id="write-form">
+        <input id="write-input" class="write-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Wort eintippen" />
+        <div class="write-row">
+          <button type="button" id="hint" class="secondary">💡 Tipp</button>
+          <button type="button" id="speak" class="secondary" aria-label="Das Wort vorlesen">🔊 Vorlesen</button>
+        </div>
+        <button type="submit" class="primary write-submit">Weiter →</button>
+      </form>
+      ${attributionLine(entry.image)}
+    </section>`);
+    app.querySelector("#home").addEventListener("click", () => { stopHint(); home(); });
+    app.querySelector("#speak").addEventListener("click", () => speak(entry.word));
+    const input = app.querySelector("#write-input");
+    input.focus();
+    const hintButton = app.querySelector("#hint");
+    const hintEl = app.querySelector("#hint-display");
+    let hintCount = 0;
+    const revealNext = () => {
+      hintCount = Math.min(hintCount + 1, entry.word.length);
+      hintEl.textContent = entry.word.slice(0, hintCount);
+      if (hintCount >= entry.word.length) stopHint();
+    };
+    const startHint = (e) => { e.preventDefault(); if (hintTimer) return; hintCount = 0; revealNext(); hintTimer = setInterval(revealNext, HINT_STEP_MS); };
+    hintButton.addEventListener("pointerdown", startHint);
+    ["pointerup", "pointerleave", "pointercancel"].forEach((evt) => hintButton.addEventListener(evt, stopHint));
+    app.querySelector("#write-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      stopHint();
+      const isCorrect = input.value === entry.word;
+      if (isCorrect) writeState.firstTryCorrect++;
+      writeFeedback(entry, input.value, isCorrect);
+    });
+  }
+
+  function writeFeedback(entry, userInput, isCorrect) {
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${writeState.index + 1} von ${writeState.order.length}</div></div>
+      <div class="word-card">
+        <p class="feedback-verdict ${isCorrect ? "correct" : "wrong"}">${isCorrect ? "✅ Richtig!" : "❌ Nicht ganz richtig"}</p>
+        ${isCorrect ? `<div class="word">${escapeHtml(entry.word)}</div>` : `
+          <div class="compare-grid">
+            <div class="compare-box wrong"><p class="compare-label">Deine Antwort</p><p class="compare-word">${escapeHtml(userInput) || "–"}</p></div>
+            <div class="compare-box correct"><p class="compare-label">Richtig wäre</p><p class="compare-word">${escapeHtml(entry.word)}</p></div>
+          </div>`}
+      </div>
+      <button id="next" class="primary">Weiter →</button>
+    </section>`);
+    app.querySelector("#home").addEventListener("click", home);
+    app.querySelector("#next").addEventListener("click", () => { writeState.index++; writeRound(); });
+  }
+
+  function writeComplete() {
+    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Wörter geschrieben.</p>${scoreLine(writeState.firstTryCorrect, writeState.order.length)}<button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
+    app.querySelector("#again").addEventListener("click", () => writeStart(writeState.list.id));
     app.querySelector("#home").addEventListener("click", home);
   }
 

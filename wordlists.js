@@ -225,6 +225,9 @@ window.WORDLISTS = [
     id: "neue_freundin",
     name: "Neue Freundin",
     lang: "de",
+    // "Wort schreiben" (Rechtschreibübung) gibt es vorerst nur bei dieser
+    // Liste - daher das Flag hier statt global in app.js. Siehe CLAUDE.md.
+    spelling: true,
     // Eigenes Bild (kein ARASAAC) speziell für diese Bildergeschichte -
     // daher ohne arasaac()-Hilfsfunktion und ohne Quellenangabe.
     icon: { source: "custom", url: "images/pictograms/new_friend.jpg", license: null, attribution: null },
