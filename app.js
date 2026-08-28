@@ -181,7 +181,7 @@
       return listButton(entry, count, settings.syllables);
     }).join("");
     render(`<section class="screen">
-      <h1>${renderText("Wörter lesen", settings.syllables)}</h1>
+      <h1>${renderText("Wörter lesen und schreiben", settings.syllables)}</h1>
       <p class="intro">${renderText("Lies ein Wort laut. Tippe dann auf", settings.syllables)} <strong>${renderText("Vorlesen", settings.syllables)}</strong> ${renderText("und überprüfe dich.", settings.syllables)}</p>
       <button class="toggle" id="toggle-syllables" aria-pressed="${settings.syllables ? "true" : "false"}">${renderText(`🔤 Silbenschrift: ${settings.syllables ? "An" : "Aus"}`, settings.syllables)}</button>
       <h2>${renderText("Wortliste auswählen", settings.syllables)}</h2>

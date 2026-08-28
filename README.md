@@ -1,4 +1,4 @@
-# Wörter lesen
+# Wörter lesen und schreiben
 
 Eine kleine, iPad-optimierte Übungsseite zum selbstständigen Lesen einzelner Wörter.
 

@@ -1,4 +1,4 @@
-# Wörter lesen – Projektkontext
+# Wörter lesen und schreiben – Projektkontext
 
 Kleine, werbefreie iPad-Webapp zum selbstständigen Wortlesen (Förderschwerpunkt
 Geistige Entwicklung). Reines HTML/CSS/JS, kein Build-Schritt, kein Backend.
