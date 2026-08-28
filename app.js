@@ -83,28 +83,108 @@
     return entry.syllables.map((syllable, i) => `<span class="syll ${i % 2 === 0 ? "syll-a" : "syll-b"}">${escapeHtml(syllable)}</span>`).join("");
   };
 
+  // --- Automatische Silbentrennung für "normalen" UI-Text --------------
+  // Für die eigentlichen Übungswörter (renderWord) wird die von Hand
+  // geprüfte Trennung aus wordlists.js verwendet. Für Überschriften,
+  // Buttons, Hinweise und Listennamen gibt es keine kuratierten Daten -
+  // hier kommt derselbe Heuristik-Algorithmus wie in tools/hyphenate.js
+  // zum Einsatz (bewusst dupliziert statt importiert, da tools/hyphenate.js
+  // ein Node-Skript ist und app.js ohne Build-Schritt direkt im Browser
+  // läuft). Bei Komposita kann das danebenliegen - für reine Navigations-/
+  // Beschriftungstexte ist das akzeptabel (siehe CLAUDE.md).
+  const isVowel = (ch) => "aeiouyäöüAEIOUYÄÖÜ".includes(ch);
+  const VOWEL_DIGRAPHS = ["ie", "ei", "ey", "au", "ai", "ay", "eu", "äu", "aa", "ee", "oo", "uu"];
+  const INSEPARABLE_TAILS = ["ch", "ck", "ph", "th"];
+  const findNuclei = (word) => {
+    const lower = word.toLowerCase();
+    const nuclei = [];
+    let i = 0;
+    while (i < word.length) {
+      if (isVowel(word[i])) {
+        let len = 1;
+        if (i + 1 < word.length && VOWEL_DIGRAPHS.includes(lower.slice(i, i + 2))) len = 2;
+        nuclei.push({ start: i, end: i + len });
+        i += len;
+      } else {
+        i++;
+      }
+    }
+    return nuclei;
+  };
+  const autoHyphenate = (word) => {
+    const nuclei = findNuclei(word);
+    if (nuclei.length <= 1) return [word];
+    const syllables = [];
+    let start = 0;
+    for (let n = 0; n < nuclei.length - 1; n++) {
+      const consStart = nuclei[n].end;
+      const consEnd = nuclei[n + 1].start;
+      const cluster = word.slice(consStart, consEnd);
+      let splitAt;
+      if (cluster.length === 0) {
+        splitAt = consStart;
+      } else {
+        const lower = cluster.toLowerCase();
+        let tailLen = 1;
+        if (lower.endsWith("sch")) tailLen = 3;
+        else if (INSEPARABLE_TAILS.some((t) => lower.endsWith(t))) tailLen = 2;
+        splitAt = consEnd - tailLen;
+      }
+      syllables.push(word.slice(start, splitAt));
+      start = splitAt;
+    }
+    syllables.push(word.slice(start));
+    return syllables;
+  };
+
+  const WORD_RE = /[A-Za-zÀ-ÖØ-öø-ÿ]+/g;
+  // Wendet Silbenschrift auf freien UI-Text an (Überschriften, Buttons,
+  // Hinweise, Listennamen) - erkennt Wörter per Regex und färbt sie ein,
+  // alles andere (Leerzeichen, Satzzeichen, Emoji, Zahlen, Pfeile) bleibt
+  // unverändert. Bei "Silbenschrift: Aus" wird nur escaped, nicht eingefärbt.
+  // Darf keine eigenen HTML-Tags enthalten (z. B. <strong>) - die müssten
+  // außerhalb dieses Aufrufs stehen, siehe home().
+  const renderText = (text, showSyllables) => {
+    const str = String(text);
+    if (!showSyllables) return escapeHtml(str);
+    let result = "";
+    let last = 0;
+    WORD_RE.lastIndex = 0;
+    let m;
+    while ((m = WORD_RE.exec(str))) {
+      result += escapeHtml(str.slice(last, m.index));
+      const parts = autoHyphenate(m[0]);
+      result += parts.length < 2
+        ? escapeHtml(m[0])
+        : parts.map((p, i) => `<span class="syll ${i % 2 === 0 ? "syll-a" : "syll-b"}">${escapeHtml(p)}</span>`).join("");
+      last = m.index + m[0].length;
+    }
+    result += escapeHtml(str.slice(last));
+    return result;
+  };
+
   // Bildquellen (z. B. ARASAAC, CC BY-NC-SA) verlangen eine Quellenangabe -
   // wird angezeigt, sobald irgendwo ein Bild mit `attribution` sichtbar ist.
-  const attributionLine = (image) => (image && image.attribution ? `<p class="attribution">Bildquelle: ${escapeHtml(image.attribution)}${image.license ? ` (${escapeHtml(image.license)})` : ""}</p>` : "");
+  const attributionLine = (image, showSyllables) => (image && image.attribution ? `<p class="attribution">${renderText(`Bildquelle: ${image.attribution}${image.license ? ` (${image.license})` : ""}`, showSyllables)}</p>` : "");
 
   // Auswertungszeile für die Abschluss-Screens von Bild-Übung, Blitzlesen und
   // Wort schreiben - zählt nur Runden, die schon beim ersten Versuch richtig
   // waren (siehe CLAUDE.md, Abschnitt Auswertung).
-  const scoreLine = (correct, total) => `<p class="score">${correct} von ${total} beim ersten Versuch richtig</p>`;
+  const scoreLine = (correct, total, showSyllables) => `<p class="score">${renderText(`${correct} von ${total} beim ersten Versuch richtig`, showSyllables)}</p>`;
 
-  const listButton = (entry, count) => `<button class="list-button" data-open="${escapeHtml(entry.id)}"><span class="list-button-left">${iconImg(entry.icon)}<span class="list-button-name">${escapeHtml(entry.name)}</span></span><span class="list-button-count">${count} Wörter&nbsp; →</span></button>`;
+  const listButton = (entry, count, showSyllables) => `<button class="list-button" data-open="${escapeHtml(entry.id)}"><span class="list-button-left">${iconImg(entry.icon)}<span class="list-button-name">${renderText(entry.name, showSyllables)}</span></span><span class="list-button-count">${renderText(`${count} Wörter`, showSyllables)}&nbsp; →</span></button>`;
 
   function home() {
     const settings = getSettings();
     const items = wordlists.map((entry) => {
       const count = entry.type === "group" ? entry.children.reduce((sum, c) => sum + c.words.length, 0) : entry.words.length;
-      return listButton(entry, count);
+      return listButton(entry, count, settings.syllables);
     }).join("");
     render(`<section class="screen">
-      <h1>Wörter lesen</h1>
-      <p class="intro">Lies ein Wort laut. Tippe dann auf <strong>Vorlesen</strong> und überprüfe dich.</p>
-      <button class="toggle" id="toggle-syllables" aria-pressed="${settings.syllables ? "true" : "false"}">🔤 Silbenschrift: ${settings.syllables ? "An" : "Aus"}</button>
-      <h2>Wortliste auswählen</h2>
+      <h1>${renderText("Wörter lesen", settings.syllables)}</h1>
+      <p class="intro">${renderText("Lies ein Wort laut. Tippe dann auf", settings.syllables)} <strong>${renderText("Vorlesen", settings.syllables)}</strong> ${renderText("und überprüfe dich.", settings.syllables)}</p>
+      <button class="toggle" id="toggle-syllables" aria-pressed="${settings.syllables ? "true" : "false"}">${renderText(`🔤 Silbenschrift: ${settings.syllables ? "An" : "Aus"}`, settings.syllables)}</button>
+      <h2>${renderText("Wortliste auswählen", settings.syllables)}</h2>
       <div class="choices">${items}</div>
     </section>`);
     app.querySelectorAll("[data-open]").forEach((button) => button.addEventListener("click", () => {
@@ -118,10 +198,11 @@
   function chooseGroup(id) {
     const group = wordlists.find((entry) => entry.id === id && entry.type === "group");
     if (!group) return home();
-    const items = group.children.map((list) => listButton(list, list.words.length)).join("");
+    const settings = getSettings();
+    const items = group.children.map((list) => listButton(list, list.words.length, settings.syllables)).join("");
     render(`<section class="screen">
-      <div class="topbar"><button id="home">← Start</button><h1>${escapeHtml(group.name)}</h1></div>
-      <h2>Thema auswählen</h2>
+      <div class="topbar"><button id="home">${renderText("← Start", settings.syllables)}</button><h1>${renderText(group.name, settings.syllables)}</h1></div>
+      <h2>${renderText("Thema auswählen", settings.syllables)}</h2>
       <div class="choices">${items}</div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
@@ -131,14 +212,15 @@
   function chooseMode(id) {
     const list = findList(id);
     if (!list) return home();
+    const settings = getSettings();
     render(`<section class="screen">
-      <div class="topbar"><button id="home">← Start</button><h1>${escapeHtml(list.name)}</h1></div>
-      <p class="intro">Wie möchtest du üben?</p>
+      <div class="topbar"><button id="home">${renderText("← Start", settings.syllables)}</button><h1>${renderText(list.name, settings.syllables)}</h1></div>
+      <p class="intro">${renderText("Wie möchtest du üben?", settings.syllables)}</p>
       <div class="choices">
-        <button class="list-button" id="mode-read">🔤 Wort lesen<span class="list-button-count">selbst lesen, dann vorlesen lassen</span></button>
-        ${hasImages(list) ? `<button class="list-button" id="mode-quiz">🖼️ Bild-Übung<span class="list-button-count">passendes Bild zum Wort finden</span></button>` : ""}
-        ${hasImages(list) ? `<button class="list-button" id="mode-blitz">⚡ Blitzlesen<span class="list-button-count">Wort kurz sehen, dann Bild wählen</span></button>` : ""}
-        ${list.spelling && hasImages(list) ? `<button class="list-button" id="mode-write">✍️ Wort schreiben<span class="list-button-count">Bild sehen, Wort selbst schreiben</span></button>` : ""}
+        <button class="list-button" id="mode-read"><span class="list-button-name">${renderText("🔤 Wort lesen", settings.syllables)}</span><span class="list-button-count">${renderText("selbst lesen, dann vorlesen lassen", settings.syllables)}</span></button>
+        ${hasImages(list) ? `<button class="list-button" id="mode-quiz"><span class="list-button-name">${renderText("🖼️ Bild-Übung", settings.syllables)}</span><span class="list-button-count">${renderText("passendes Bild zum Wort finden", settings.syllables)}</span></button>` : ""}
+        ${hasImages(list) ? `<button class="list-button" id="mode-blitz"><span class="list-button-name">${renderText("⚡ Blitzlesen", settings.syllables)}</span><span class="list-button-count">${renderText("Wort kurz sehen, dann Bild wählen", settings.syllables)}</span></button>` : ""}
+        ${list.spelling && hasImages(list) ? `<button class="list-button" id="mode-write"><span class="list-button-name">${renderText("✍️ Wort schreiben", settings.syllables)}</span><span class="list-button-count">${renderText("Bild sehen, Wort selbst schreiben", settings.syllables)}</span></button>` : ""}
       </div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
@@ -158,13 +240,13 @@
     const settings = getSettings();
     const entry = state.words[state.index];
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${state.index + 1} von ${state.words.length}</div></div>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${state.index + 1} von ${state.words.length}`, settings.syllables)}</div></div>
       <div class="word-card">
         <div class="word">${renderWord(entry, settings.syllables)}</div>
       </div>
-      <button id="speak" class="primary speak" aria-label="Das Wort ${escapeHtml(entry.word)} vorlesen">🔊 Vorlesen</button>
-      <p class="hint">Erst selbst lesen, dann zum Überprüfen tippen.</p>
-      <div class="nav"><button id="back" ${state.index === 0 ? "disabled" : ""}>← Zurück</button><button id="next" class="secondary">${state.index === state.words.length - 1 ? "Fertig" : "Weiter →"}</button></div>
+      <button id="speak" class="primary speak" aria-label="Das Wort ${escapeHtml(entry.word)} vorlesen">${renderText("🔊 Vorlesen", settings.syllables)}</button>
+      <p class="hint">${renderText("Erst selbst lesen, dann zum Überprüfen tippen.", settings.syllables)}</p>
+      <div class="nav"><button id="back" ${state.index === 0 ? "disabled" : ""}>${renderText("← Zurück", settings.syllables)}</button><button id="next" class="secondary">${renderText(state.index === state.words.length - 1 ? "Fertig" : "Weiter →", settings.syllables)}</button></div>
     </section>`);
     scheduleFit(app.querySelector(".word"));
     app.querySelector("#home").addEventListener("click", home);
@@ -173,7 +255,12 @@
     app.querySelector("#next").addEventListener("click", () => { state.index++; practice(); });
   }
 
-  function complete() { render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Wörter gelesen.</p><button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`); app.querySelector("#again").addEventListener("click", () => start(state.list.id)); app.querySelector("#home").addEventListener("click", home); }
+  function complete() {
+    const settings = getSettings();
+    render(`<section class="screen"><div class="finish"><h1>${renderText("Geschafft! 🎉", settings.syllables)}</h1><p class="intro">${renderText("Du hast alle Wörter gelesen.", settings.syllables)}</p><button class="primary" id="again">${renderText("Noch einmal", settings.syllables)}</button><button id="home">${renderText("Andere Wortliste", settings.syllables)}</button></div></section>`);
+    app.querySelector("#again").addEventListener("click", () => start(state.list.id));
+    app.querySelector("#home").addEventListener("click", home);
+  }
 
   // --- Bild-Übung: Wort wird gezeigt, Schüler:in wählt das passende Bild aus 4 Alternativen ---
 
@@ -196,13 +283,13 @@
     // für die Auswertung am Ende (quizComplete).
     let attempted = false;
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${quizState.index + 1} von ${quizState.order.length}</div></div>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${quizState.index + 1} von ${quizState.order.length}`, settings.syllables)}</div></div>
       <div class="quiz-word">${renderWord(target, settings.syllables)}</div>
       <div class="quiz-grid">
         ${options.map((opt, i) => `<button class="quiz-option" data-id="${escapeHtml(opt.id)}" aria-label="Bildoption ${i + 1}"><img src="${escapeHtml(opt.image.url)}" alt="" /></button>`).join("")}
       </div>
       <div class="quiz-footer">
-        ${attributionLine(target.image)}
+        ${attributionLine(target.image, settings.syllables)}
         <button id="speak" class="speak-mini" aria-label="Das Wort ${escapeHtml(target.word)} vorlesen">🔊</button>
       </div>
     </section>`);
@@ -228,7 +315,8 @@
   }
 
   function quizComplete() {
-    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Bilder richtig zugeordnet.</p>${scoreLine(quizState.firstTryCorrect, quizState.order.length)}<button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
+    const settings = getSettings();
+    render(`<section class="screen"><div class="finish"><h1>${renderText("Geschafft! 🎉", settings.syllables)}</h1><p class="intro">${renderText("Du hast alle Bilder richtig zugeordnet.", settings.syllables)}</p>${scoreLine(quizState.firstTryCorrect, quizState.order.length, settings.syllables)}<button class="primary" id="again">${renderText("Noch einmal", settings.syllables)}</button><button id="home">${renderText("Andere Wortliste", settings.syllables)}</button></div></section>`);
     app.querySelector("#again").addEventListener("click", () => quizStart(quizState.list.id));
     app.querySelector("#home").addEventListener("click", home);
   }
@@ -250,10 +338,11 @@
   function blitzChooseDuration(id) {
     const list = findList(id);
     if (!list) return home();
-    const items = BLITZ_SPEEDS.map((s) => `<button class="speed-option" data-duration="${s.ms}" aria-label="${escapeHtml(s.label)} - ${escapeHtml(s.hint)}"><span class="speed-icon">${s.icon}</span><span class="speed-label">${escapeHtml(s.label)}</span></button>`).join("");
+    const settings = getSettings();
+    const items = BLITZ_SPEEDS.map((s) => `<button class="speed-option" data-duration="${s.ms}" aria-label="${escapeHtml(s.label)} - ${escapeHtml(s.hint)}"><span class="speed-icon">${s.icon}</span><span class="speed-label">${renderText(s.label, settings.syllables)}</span></button>`).join("");
     render(`<section class="screen">
-      <div class="topbar"><button id="home">← Start</button><h1>${escapeHtml(list.name)}</h1></div>
-      <p class="intro">Wie schnell soll das Wort verschwinden?</p>
+      <div class="topbar"><button id="home">${renderText("← Start", settings.syllables)}</button><h1>${renderText(list.name, settings.syllables)}</h1></div>
+      <p class="intro">${renderText("Wie schnell soll das Wort verschwinden?", settings.syllables)}</p>
       <div class="speed-grid">${items}</div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
@@ -269,10 +358,11 @@
 
   function blitzReady() {
     if (blitzState.index >= blitzState.order.length) return blitzComplete();
+    const settings = getSettings();
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
-      <div class="word-card"><button id="ready" class="primary speak" aria-label="Bereit - Wort anzeigen">⚡ Bereit</button></div>
-      <p class="hint">Leertaste drücken oder Bereit antippen, dann genau hinschauen.</p>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${blitzState.index + 1} von ${blitzState.order.length}`, settings.syllables)}</div></div>
+      <div class="word-card"><button id="ready" class="primary speak" aria-label="Bereit - Wort anzeigen">${renderText("⚡ Bereit", settings.syllables)}</button></div>
+      <p class="hint">${renderText("Leertaste drücken oder Bereit antippen, dann genau hinschauen.", settings.syllables)}</p>
     </section>`);
     const onKey = (e) => { if (e.code === "Space") { e.preventDefault(); go(); } };
     const go = () => { document.removeEventListener("keydown", onKey); blitzShowWord(); };
@@ -285,7 +375,7 @@
     const settings = getSettings();
     const entry = blitzState.order[blitzState.index];
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${blitzState.index + 1} von ${blitzState.order.length}`, settings.syllables)}</div></div>
       <div class="word-card"><div class="word">${renderWord(entry, settings.syllables)}</div></div>
     </section>`);
     scheduleFit(app.querySelector(".word"));
@@ -297,8 +387,9 @@
   // Kurzer leerer/neutraler Bildschirm zwischen Wort und Bild-Kontrolle, damit
   // kein Nachbild des Worts die Bildauswahl beeinflusst.
   function blitzMask() {
+    const settings = getSettings();
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${blitzState.index + 1} von ${blitzState.order.length}`, settings.syllables)}</div></div>
       <div class="word-card"></div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
@@ -307,6 +398,7 @@
   }
 
   function blitzQuiz() {
+    const settings = getSettings();
     const entry = blitzState.order[blitzState.index];
     const distractors = shuffle(blitzState.list.words.filter((w) => w.id !== entry.id)).slice(0, 3);
     const options = shuffle([entry, ...distractors]);
@@ -314,12 +406,12 @@
     blitzState.locked = false;
     let attempted = false;
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${blitzState.index + 1} von ${blitzState.order.length}</div></div>
-      <p class="intro">Welches Bild passt zum Wort?</p>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${blitzState.index + 1} von ${blitzState.order.length}`, settings.syllables)}</div></div>
+      <p class="intro">${renderText("Welches Bild passt zum Wort?", settings.syllables)}</p>
       <div class="quiz-grid">
         ${options.map((opt, i) => `<button class="quiz-option" data-id="${escapeHtml(opt.id)}" aria-label="Bildoption ${i + 1}"><img src="${escapeHtml(opt.image.url)}" alt="" /></button>`).join("")}
       </div>
-      ${attributionLine(entry.image)}
+      ${attributionLine(entry.image, settings.syllables)}
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
     app.querySelectorAll(".quiz-option").forEach((button) => {
@@ -341,7 +433,8 @@
   }
 
   function blitzComplete() {
-    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Wörter erkannt.</p>${scoreLine(blitzState.firstTryCorrect, blitzState.order.length)}<button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
+    const settings = getSettings();
+    render(`<section class="screen"><div class="finish"><h1>${renderText("Geschafft! 🎉", settings.syllables)}</h1><p class="intro">${renderText("Du hast alle Wörter erkannt.", settings.syllables)}</p>${scoreLine(blitzState.firstTryCorrect, blitzState.order.length, settings.syllables)}<button class="primary" id="again">${renderText("Noch einmal", settings.syllables)}</button><button id="home">${renderText("Andere Wortliste", settings.syllables)}</button></div></section>`);
     app.querySelector("#again").addEventListener("click", () => blitzStart(blitzState.list.id, blitzState.duration));
     app.querySelector("#home").addEventListener("click", home);
   }
@@ -361,24 +454,25 @@
 
   function writeRound() {
     if (writeState.index >= writeState.order.length) return writeComplete();
+    const settings = getSettings();
     const entry = writeState.order[writeState.index];
     let hintTimer = null;
     // Räumt einen laufenden Tipp-Timer auf - wird beim Verlassen des Screens
     // (Start-Button, Weiter) und beim Loslassen des Tipp-Buttons aufgerufen.
     const stopHint = () => { if (hintTimer) { clearInterval(hintTimer); hintTimer = null; } const el = app.querySelector("#hint-display"); if (el) el.textContent = ""; };
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${writeState.index + 1} von ${writeState.order.length}</div></div>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${writeState.index + 1} von ${writeState.order.length}`, settings.syllables)}</div></div>
       <div class="word-card"><img class="write-image" src="${escapeHtml(entry.image.url)}" alt="" /></div>
       <div class="hint-display" id="hint-display" aria-live="polite"></div>
       <form id="write-form">
         <input id="write-input" class="write-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Wort eintippen" />
         <div class="write-row">
-          <button type="button" id="hint" class="secondary">💡 Tipp</button>
-          <button type="button" id="speak" class="secondary" aria-label="Das Wort vorlesen">🔊 Vorlesen</button>
+          <button type="button" id="hint" class="secondary">${renderText("💡 Tipp", settings.syllables)}</button>
+          <button type="button" id="speak" class="secondary" aria-label="Das Wort vorlesen">${renderText("🔊 Vorlesen", settings.syllables)}</button>
         </div>
-        <button type="submit" class="primary write-submit">Weiter →</button>
+        <button type="submit" class="primary write-submit">${renderText("Weiter →", settings.syllables)}</button>
       </form>
-      ${attributionLine(entry.image)}
+      ${attributionLine(entry.image, settings.syllables)}
     </section>`);
     app.querySelector("#home").addEventListener("click", () => { stopHint(); home(); });
     app.querySelector("#speak").addEventListener("click", () => speak(entry.word));
@@ -405,24 +499,26 @@
   }
 
   function writeFeedback(entry, userInput, isCorrect) {
+    const settings = getSettings();
     render(`<section class="screen">
-      <div class="topbar"><button id="home" aria-label="Zur Startseite">⌂ Start</button><div class="progress">${writeState.index + 1} von ${writeState.order.length}</div></div>
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${writeState.index + 1} von ${writeState.order.length}`, settings.syllables)}</div></div>
       <div class="word-card">
-        <p class="feedback-verdict ${isCorrect ? "correct" : "wrong"}">${isCorrect ? "✅ Richtig!" : "❌ Nicht ganz richtig"}</p>
-        ${isCorrect ? `<div class="word">${escapeHtml(entry.word)}</div>` : `
+        <p class="feedback-verdict ${isCorrect ? "correct" : "wrong"}">${renderText(isCorrect ? "✅ Richtig!" : "❌ Nicht ganz richtig", settings.syllables)}</p>
+        ${isCorrect ? `<div class="word">${renderWord(entry, settings.syllables)}</div>` : `
           <div class="compare-grid">
-            <div class="compare-box wrong"><p class="compare-label">Deine Antwort</p><p class="compare-word">${escapeHtml(userInput) || "–"}</p></div>
-            <div class="compare-box correct"><p class="compare-label">Richtig wäre</p><p class="compare-word">${escapeHtml(entry.word)}</p></div>
+            <div class="compare-box wrong"><p class="compare-label">${renderText("Deine Antwort", settings.syllables)}</p><p class="compare-word">${escapeHtml(userInput) || "–"}</p></div>
+            <div class="compare-box correct"><p class="compare-label">${renderText("Richtig wäre", settings.syllables)}</p><p class="compare-word">${renderWord(entry, settings.syllables)}</p></div>
           </div>`}
       </div>
-      <button id="next" class="primary">Weiter →</button>
+      <button id="next" class="primary">${renderText("Weiter →", settings.syllables)}</button>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
     app.querySelector("#next").addEventListener("click", () => { writeState.index++; writeRound(); });
   }
 
   function writeComplete() {
-    render(`<section class="screen"><div class="finish"><h1>Geschafft! 🎉</h1><p class="intro">Du hast alle Wörter geschrieben.</p>${scoreLine(writeState.firstTryCorrect, writeState.order.length)}<button class="primary" id="again">Noch einmal</button><button id="home">Andere Wortliste</button></div></section>`);
+    const settings = getSettings();
+    render(`<section class="screen"><div class="finish"><h1>${renderText("Geschafft! 🎉", settings.syllables)}</h1><p class="intro">${renderText("Du hast alle Wörter geschrieben.", settings.syllables)}</p>${scoreLine(writeState.firstTryCorrect, writeState.order.length, settings.syllables)}<button class="primary" id="again">${renderText("Noch einmal", settings.syllables)}</button><button id="home">${renderText("Andere Wortliste", settings.syllables)}</button></div></section>`);
     app.querySelector("#again").addEventListener("click", () => writeStart(writeState.list.id));
     app.querySelector("#home").addEventListener("click", home);
   }

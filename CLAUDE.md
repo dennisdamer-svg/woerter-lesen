@@ -179,6 +179,35 @@ beiden Quell-IDs dokumentieren, z. B. `arasaac("drink_menu", "5513+4575 (kombini
 3. `git add -A && git commit -m "..."`. Push macht i. d. R. der Projektinhaber
    selbst im Terminal (Push braucht Zugangsdaten, die hier nicht hinterlegt sind).
 
+## Silbenschrift-Umschalter (global)
+
+Der Umschalter "Silbenschrift: An/Aus" auf der Startseite wirkt auf **die
+gesamte App**, nicht nur auf die Übungswörter: Bei "An" wird jeder sichtbare
+UI-Text (Überschriften, Buttons, Hinweise, Listennamen, Auswertungszeilen,
+Quellenangaben) silbenweise eingefärbt.
+
+- Für die **Übungswörter** selbst (`.word`/`.quiz-word`, `renderWord()` in
+  `app.js`) wird weiterhin die von Hand geprüfte `syllables`-Angabe aus
+  `wordlists.js` verwendet - das bleibt exakt.
+- Für **allen anderen Text** gibt es keine kuratierten Trenndaten. Dafür
+  nutzt `renderText()` in `app.js` denselben Heuristik-Algorithmus wie
+  `tools/hyphenate.js` (bewusst dorthin dupliziert, nicht importiert - kein
+  Build-Schritt, `app.js` läuft direkt im Browser). Bei Komposita kann die
+  Trennung danebenliegen; für reine Navigations-/Beschriftungstexte ist das
+  akzeptabel, für die eigentliche Leseübung (das Wort in der Wortliste)
+  bewusst nicht - dort gilt weiterhin renderWord()/wordlists.js.
+- **Wichtig bei neuem UI-Text**: `renderText(text, settings.syllables)`
+  erzeugt bei "Silbenschrift: An" pro Wort ein eigenes `<span>` - wird dieser
+  Text als *direktes* Kind eines `display:flex`-Containers eingefügt (z. B.
+  `.list-button`), zerreißt `justify-content:space-between` das Label in
+  einzelne Wörter. Deshalb Label-Text immer in einen eigenen umschließenden
+  `<span>` packen (siehe `list-button-name`/`list-button-count` in
+  `listButton()` bzw. den Moduswahl-Buttons in `chooseMode()`), nie roh neben
+  ein Geschwister-Element stellen.
+- `renderText()` darf keinen bereits vorhandenen HTML-Code enthalten (z. B.
+  `<strong>`) - der muss außerhalb des Aufrufs stehen, siehe `home()`
+  (Intro-Satz mit `<strong>Vorlesen</strong>`).
+
 ## Sonstiges
 
 - **Schriftart**: Poppins (statt Systemschrift), lokal in `fonts/` gehostet
