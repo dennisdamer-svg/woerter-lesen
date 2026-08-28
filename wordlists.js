@@ -241,7 +241,9 @@ window.WORDLISTS = [
       { id: "de-schminken", word: "schminken", syllables: ["schmin", "ken"], conceptId: "put_on_makeup", image: arasaac("put_on_makeup", 27875) },
       { id: "de-fernsehen", word: "fernsehen", syllables: ["fern", "se", "hen"], conceptId: "watch_tv", image: arasaac("watch_tv", 6626) },
       { id: "de-traurig", word: "traurig", syllables: ["trau", "rig"], conceptId: "sad", image: arasaac("sad", 2606) },
-      { id: "de-vorstellen", word: "vorstellen", syllables: ["vor", "stel", "len"], conceptId: "introduce", image: arasaac("introduce", 9870) },
+      // Eigenes Bild statt ARASAAC (siehe unten "custom") - zeigt gezielt das
+      // Vorstellen einer Person, nicht "Präsentation" wie das ARASAAC-Bild.
+      { id: "de-vorstellen", word: "vorstellen", syllables: ["vor", "stel", "len"], conceptId: "introduce", image: { source: "custom", url: "images/pictograms/introduce.jpg", license: null, attribution: null } },
       { id: "de-ablehnen", word: "ablehnen", syllables: ["ab", "leh", "nen"], conceptId: "reject", image: arasaac("reject", 21587) },
       { id: "de-anruf", word: "Anruf", syllables: ["An", "ruf"], conceptId: "phone_call", image: arasaac("phone_call", 6518) },
     ],
