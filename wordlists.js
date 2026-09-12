@@ -31,6 +31,7 @@ window.WORDLISTS = [
     id: "kueche",
     name: "Küche",
     lang: "de",
+    spelling: true,
     icon: arasaac("kitchen", 33070),
     words: [
       { id: "de-kueche", word: "Küche", syllables: ["Kü", "che"], conceptId: "kitchen", image: arasaac("kitchen", 33070) },
@@ -63,6 +64,7 @@ window.WORDLISTS = [
         id: "tiere_hof",
         name: "Tiere & Hof",
         lang: "de",
+        spelling: true,
         icon: arasaac("farm", 3337),
         words: [
           { id: "de-traktor", word: "Traktor", syllables: ["Trak", "tor"], conceptId: "tractor", image: arasaac("tractor", 2600) },
@@ -90,6 +92,7 @@ window.WORDLISTS = [
         id: "feld_maschinen",
         name: "Feld & Maschinen",
         lang: "de",
+        spelling: true,
         icon: arasaac("plow", 25808),
         words: [
           { id: "de-traktor", word: "Traktor", syllables: ["Trak", "tor"], conceptId: "tractor", image: arasaac("tractor", 2600) },
@@ -116,6 +119,7 @@ window.WORDLISTS = [
     id: "berufe",
     name: "Berufe",
     lang: "de",
+    spelling: true,
     icon: arasaac("profession", 7795),
     words: [
       { id: "de-lehrerin", word: "Lehrerin", syllables: ["Leh", "re", "rin"], conceptId: "teacher", image: arasaac("teacher", 2456) },
@@ -146,6 +150,7 @@ window.WORDLISTS = [
         id: "essen_trinken",
         name: "Essen & Trinken",
         lang: "de",
+        spelling: true,
         // Kein einzelnes ARASAAC-Bild deckt "Essen & Trinken" als Ganzes gut ab -
         // "food" (Fleisch/Apfel/Brot) kommt dem am nächsten.
         icon: arasaac("food", 4610),
@@ -171,6 +176,7 @@ window.WORDLISTS = [
         id: "im_restaurant",
         name: "Im Restaurant",
         lang: "de",
+        spelling: true,
         icon: arasaac("restaurant", 10283),
         words: [
           { id: "de-kellner", word: "Kellner", syllables: ["Kell", "ner"], conceptId: "waiter", image: arasaac("waiter", 2681) },
@@ -196,6 +202,7 @@ window.WORDLISTS = [
         id: "am_tisch",
         name: "Am Tisch",
         lang: "de",
+        spelling: true,
         icon: arasaac("table", 37873),
         words: [
           { id: "de-zucker", word: "Zucker", syllables: ["Zu", "cker"], conceptId: "sugar", image: arasaac("sugar", 25560) },
@@ -225,8 +232,8 @@ window.WORDLISTS = [
     id: "neue_freundin",
     name: "Neue Freundin",
     lang: "de",
-    // "Wort schreiben" (Rechtschreibübung) gibt es vorerst nur bei dieser
-    // Liste - daher das Flag hier statt global in app.js. Siehe CLAUDE.md.
+    // "Wort schreiben" (Rechtschreibübung) ist über dieses Flag pro Liste
+    // steuerbar statt global in app.js - siehe CLAUDE.md.
     spelling: true,
     // Eigenes Bild (kein ARASAAC) speziell für diese Bildergeschichte -
     // daher ohne arasaac()-Hilfsfunktion und ohne Quellenangabe.

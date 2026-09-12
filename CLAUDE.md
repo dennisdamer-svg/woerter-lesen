@@ -143,9 +143,13 @@ Datenstruktur pro Liste:
     und verschwindet beim Loslassen wieder komplett - Ziel: kurzer Anstoß,
     nicht Vorsagen. Dieser Modus ist bewusst **nicht** über `hasImages()`
     allein gesteuert, sondern zusätzlich über das Listen-Flag `spelling:
-    true` in `wordlists.js` - aktuell nur bei "Neue Freundin" gesetzt, da
-    Rechtschreibübung fachlich mehr voraussetzt als Bilder-Zuordnen und
-    bewusst nicht automatisch für jede Liste erscheinen soll.
+    true` in `wordlists.js`, da Rechtschreibübung fachlich mehr voraussetzt
+    als Bilder-Zuordnen und deshalb bewusst pro Liste ein-/ausschaltbar ist
+    (nicht automatisch an `hasImages()` gekoppelt). Aktuell bei allen Listen
+    gesetzt (Stand: Analog zur separaten Englisch-App, die den Modus
+    ebenfalls für alle Listen anbietet); bei künftigen neuen Listen prüfen,
+    ob Rechtschreibübung fachlich passt, statt das Flag automatisch mit
+    anzulegen.
 
 ### Auswertung am Rundenende
 
