@@ -11,7 +11,7 @@
   // davon, ob eine Liste direkt auf oberster Ebene steht oder in einer
   // Gruppe steckt - Üben/Quiz läuft immer auf einer einzelnen Liste.
   const flatLists = () => wordlists.flatMap((entry) => (entry.type === "group" ? entry.children : [entry]));
-  const findList = (id) => flatLists().find((item) => item.id === id);
+  const findList = (id) => flatLists().find((item) => item.id === id) || customLists.find((item) => item.id === id);
   const hasImages = (list) => list.words.every((w) => w.image && w.image.url);
   const iconImg = (icon) => (icon && icon.url ? `<img class="list-icon" src="${escapeHtml(icon.url)}" alt="" />` : "");
 
@@ -19,6 +19,14 @@
   let quizState = { list: null, order: [], index: 0, correctId: null, locked: false, firstTryCorrect: 0 };
   let blitzState = { list: null, order: [], index: 0, duration: 800, correctId: null, locked: false, firstTryCorrect: 0 };
   let writeState = { list: null, order: [], index: 0, firstTryCorrect: 0 };
+
+  // "Listen kombinieren": erzeugt aus mehreren ausgewählten Listen eine
+  // temporäre Sammel-Liste (nur im Speicher, nicht in wordlists.js), damit
+  // dieselben Übungsmodi (Lesen/Bild-Übung/Blitzlesen/Schreiben) darauf wie
+  // gewohnt über findList() funktionieren. customLists lebt nur zur Laufzeit,
+  // wird bei jeder neuen Kombination ersetzt statt endlos zu wachsen.
+  let customLists = [];
+  let multiSelectState = { selected: new Set(), expanded: new Set() };
 
   // Erhöht sich bei jedem render() - verhindert, dass ein noch laufender
   // setTimeout (z. B. Blitzlesen-Anzeigedauer) nach einem Screen-Wechsel
@@ -186,6 +194,7 @@
       <button class="toggle" id="toggle-syllables" aria-pressed="${settings.syllables ? "true" : "false"}">${renderText(`🔤 Silbenschrift: ${settings.syllables ? "An" : "Aus"}`, settings.syllables)}</button>
       <h2>${renderText("Wortliste auswählen", settings.syllables)}</h2>
       <div class="choices">${items}</div>
+      <button class="secondary" id="multi-select">${renderText("🔀 Mehrere Listen kombinieren", settings.syllables)}</button>
     </section>`);
     app.querySelectorAll("[data-open]").forEach((button) => button.addEventListener("click", () => {
       const entry = wordlists.find((item) => item.id === button.dataset.open);
@@ -193,6 +202,99 @@
       else chooseMode(button.dataset.open);
     }));
     app.querySelector("#toggle-syllables").addEventListener("click", () => { setSettings({ ...settings, syllables: !settings.syllables }); home(); });
+    app.querySelector("#multi-select").addEventListener("click", () => { multiSelectState = { selected: new Set(), expanded: new Set() }; multiSelect(); });
+  }
+
+  // --- Listen kombinieren: mehrere Listen per Checkbox auswählen -------
+  // Gruppen (Gastronomie, Landwirtschaft) bekommen eine eigene Checkbox
+  // (wählt alle Unterlisten auf einmal) plus einen Ausklapp-Pfeil, um bei
+  // Bedarf nur einzelne Unterlisten anzuhaken - Kompromiss zwischen
+  // Übersichtlichkeit und Feinauswahl.
+
+  function groupChildIds(group) { return group.children.map((c) => c.id); }
+  function groupCheckState(group) {
+    const ids = groupChildIds(group);
+    const selectedCount = ids.filter((id) => multiSelectState.selected.has(id)).length;
+    if (selectedCount === 0) return "none";
+    if (selectedCount === ids.length) return "all";
+    return "some";
+  }
+
+  function multiSelect() {
+    const settings = getSettings();
+    const rows = wordlists.map((entry) => {
+      if (entry.type === "group") {
+        const state = groupCheckState(entry);
+        const expanded = multiSelectState.expanded.has(entry.id);
+        const total = entry.children.reduce((sum, c) => sum + c.words.length, 0);
+        const childRows = entry.children.map((child) => `
+          <label class="select-row select-row-child">
+            <input type="checkbox" data-select="${escapeHtml(child.id)}" ${multiSelectState.selected.has(child.id) ? "checked" : ""} />
+            ${iconImg(child.icon)}<span class="select-row-name">${renderText(child.name, settings.syllables)}</span>
+            <span class="select-row-count">${renderText(`${child.words.length} Wörter`, settings.syllables)}</span>
+          </label>`).join("");
+        return `<div class="select-group">
+          <label class="select-row">
+            <input type="checkbox" data-select-group="${escapeHtml(entry.id)}" ${state === "all" ? "checked" : ""} data-indeterminate="${state === "some" ? "true" : "false"}" />
+            ${iconImg(entry.icon)}<span class="select-row-name">${renderText(entry.name, settings.syllables)}</span>
+            <span class="select-row-count">${renderText(`${total} Wörter`, settings.syllables)}</span>
+            <button type="button" class="expand-toggle" data-expand="${escapeHtml(entry.id)}" aria-label="${expanded ? "Einklappen" : "Ausklappen"}">${expanded ? "▾" : "▸"}</button>
+          </label>
+          ${expanded ? `<div class="select-children">${childRows}</div>` : ""}
+        </div>`;
+      }
+      return `<label class="select-row">
+        <input type="checkbox" data-select="${escapeHtml(entry.id)}" ${multiSelectState.selected.has(entry.id) ? "checked" : ""} />
+        ${iconImg(entry.icon)}<span class="select-row-name">${renderText(entry.name, settings.syllables)}</span>
+        <span class="select-row-count">${renderText(`${entry.words.length} Wörter`, settings.syllables)}</span>
+      </label>`;
+    }).join("");
+    const totalSelected = [...multiSelectState.selected].reduce((sum, id) => { const list = findList(id) || flatLists().find((l) => l.id === id); return sum + (list ? list.words.length : 0); }, 0);
+    render(`<section class="screen">
+      <div class="topbar"><button id="home">${renderText("← Start", settings.syllables)}</button><h1>${renderText("Listen kombinieren", settings.syllables)}</h1></div>
+      <p class="intro">${renderText("Wähle mehrere Listen aus, die zusammen geübt werden sollen.", settings.syllables)}</p>
+      <div class="choices select-list">${rows}</div>
+      <p class="hint">${renderText(`${multiSelectState.selected.size} Listen ausgewählt (${totalSelected} Wörter)`, settings.syllables)}</p>
+      <button class="primary" id="confirm-select" ${multiSelectState.selected.size === 0 ? "disabled" : ""}>${renderText("Weiter →", settings.syllables)}</button>
+    </section>`);
+    app.querySelectorAll("[data-indeterminate='true']").forEach((el) => { el.indeterminate = true; });
+    app.querySelector("#home").addEventListener("click", home);
+    app.querySelectorAll("[data-select]").forEach((el) => el.addEventListener("change", () => {
+      if (el.checked) multiSelectState.selected.add(el.dataset.select);
+      else multiSelectState.selected.delete(el.dataset.select);
+      multiSelect();
+    }));
+    app.querySelectorAll("[data-select-group]").forEach((el) => el.addEventListener("change", () => {
+      const group = wordlists.find((entry) => entry.id === el.dataset.selectGroup);
+      const ids = groupChildIds(group);
+      if (el.checked) ids.forEach((id) => multiSelectState.selected.add(id));
+      else ids.forEach((id) => multiSelectState.selected.delete(id));
+      multiSelect();
+    }));
+    app.querySelectorAll("[data-expand]").forEach((el) => el.addEventListener("click", () => {
+      const id = el.dataset.expand;
+      if (multiSelectState.expanded.has(id)) multiSelectState.expanded.delete(id);
+      else multiSelectState.expanded.add(id);
+      multiSelect();
+    }));
+    const confirmButton = app.querySelector("#confirm-select");
+    if (confirmButton) confirmButton.addEventListener("click", confirmMultiSelect);
+  }
+
+  function confirmMultiSelect() {
+    const chosen = flatLists().filter((list) => multiSelectState.selected.has(list.id));
+    if (!chosen.length) return multiSelect();
+    const words = chosen.flatMap((list) => list.words);
+    const id = `custom-${Date.now()}`;
+    const merged = {
+      id,
+      name: chosen.length === 1 ? chosen[0].name : `Eigene Auswahl (${chosen.length} Listen)`,
+      lang: "de",
+      spelling: chosen.every((list) => list.spelling === true),
+      words,
+    };
+    customLists = [merged];
+    chooseMode(id);
   }
 
   function chooseGroup(id) {

@@ -82,3 +82,15 @@ h2 { font-size: clamp(1.5rem, 5vw, 2.1rem); }
 .compare-label { margin: 0 0 6px; font-size: .85rem; font-weight: 650; }
 .compare-word { margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.6rem); font-weight: 800; overflow-wrap: anywhere; }
 .score { text-align: center; font-size: clamp(1.05rem, 3.5vw, 1.35rem); font-weight: 700; }
+
+/* Listen kombinieren (Mehrfachauswahl) */
+.select-list { gap: 10px; }
+.select-group { border: 3px solid #102a43; border-radius: 16px; background: #fff; overflow: hidden; }
+.select-group .select-row { border: none; border-radius: 0; }
+.select-row { min-height: 68px; border: 3px solid #102a43; border-radius: 16px; background: #fff; display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; }
+.select-row input[type="checkbox"] { width: 28px; height: 28px; flex-shrink: 0; accent-color: #0b6e4f; }
+.select-row-name { overflow-wrap: anywhere; }
+.select-row-count { margin-left: auto; flex-shrink: 0; font-size: .85em; font-weight: 650; }
+.expand-toggle { min-height: 44px; min-width: 44px; padding: 6px 10px; font-size: 1.3rem; margin-left: 8px; }
+.select-children { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px 10px 36px; border-top: 3px solid #102a43; }
+.select-row-child { min-height: 56px; }
