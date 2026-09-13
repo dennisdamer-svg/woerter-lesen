@@ -19,6 +19,7 @@
   let quizState = { list: null, order: [], index: 0, correctId: null, locked: false, firstTryCorrect: 0 };
   let blitzState = { list: null, order: [], index: 0, duration: 800, correctId: null, locked: false, firstTryCorrect: 0 };
   let writeState = { list: null, order: [], index: 0, firstTryCorrect: 0 };
+  let dictateState = { list: null, order: [], index: 0, firstTryCorrect: 0 };
 
   // "Listen kombinieren": erzeugt aus mehreren ausgewählten Listen eine
   // temporäre Sammel-Liste (nur im Speicher, nicht in wordlists.js), damit
@@ -220,6 +221,19 @@
     return "some";
   }
 
+  // Eine Auswahl-Zeile besteht aus drei Teilen (wie in der Englisch-App):
+  // Checkbox-Kästchen links, Haupt-Pille (Icon+Name+Wortanzahl) in der Mitte,
+  // optional eine Ausklapp-Box rechts (nur bei Gruppen). Eine echte Checkbox
+  // pro Zeile, per eindeutiger inputId von zwei <label for="...">-Bereichen
+  // (Kästchen + Haupt-Pille) ansprechbar, damit beide Bereiche antippbar sind.
+  const selectItem = (inputId, checkboxAttrs, entry, count, settings, expandButton = "") => `
+    <div class="select-item">
+      <input type="checkbox" id="${inputId}" class="select-checkbox-input" ${checkboxAttrs} />
+      <label class="select-checkbox-box" for="${inputId}"></label>
+      <label class="select-row-main" for="${inputId}">${iconImg(entry.icon)}<span class="select-row-name">${renderText(entry.name, settings.syllables)}</span><span class="select-row-count">${renderText(String(count), settings.syllables)}</span></label>
+      ${expandButton}
+    </div>`;
+
   function multiSelect() {
     const settings = getSettings();
     const rows = wordlists.map((entry) => {
@@ -227,34 +241,29 @@
         const state = groupCheckState(entry);
         const expanded = multiSelectState.expanded.has(entry.id);
         const total = entry.children.reduce((sum, c) => sum + c.words.length, 0);
-        const childRows = entry.children.map((child) => `
-          <label class="select-row select-row-child">
-            <input type="checkbox" data-select="${escapeHtml(child.id)}" ${multiSelectState.selected.has(child.id) ? "checked" : ""} />
-            ${iconImg(child.icon)}<span class="select-row-name">${renderText(child.name, settings.syllables)}</span>
-            <span class="select-row-count">${renderText(`${child.words.length} Wörter`, settings.syllables)}</span>
-          </label>`).join("");
-        return `<div class="select-group">
-          <label class="select-row">
-            <input type="checkbox" data-select-group="${escapeHtml(entry.id)}" ${state === "all" ? "checked" : ""} data-indeterminate="${state === "some" ? "true" : "false"}" />
-            ${iconImg(entry.icon)}<span class="select-row-name">${renderText(entry.name, settings.syllables)}</span>
-            <span class="select-row-count">${renderText(`${total} Wörter`, settings.syllables)}</span>
-            <button type="button" class="expand-toggle" data-expand="${escapeHtml(entry.id)}" aria-label="${expanded ? "Einklappen" : "Ausklappen"}">${expanded ? "▾" : "▸"}</button>
-          </label>
-          ${expanded ? `<div class="select-children">${childRows}</div>` : ""}
-        </div>`;
+        const childRows = entry.children.map((child) => selectItem(
+          `select-${child.id}`,
+          `data-select="${escapeHtml(child.id)}" ${multiSelectState.selected.has(child.id) ? "checked" : ""}`,
+          child, child.words.length, settings,
+        )).join("");
+        const groupRow = selectItem(
+          `select-group-${entry.id}`,
+          `data-select-group="${escapeHtml(entry.id)}" ${state === "all" ? "checked" : ""} data-indeterminate="${state === "some" ? "true" : "false"}"`,
+          entry, total, settings,
+          `<button type="button" class="select-expand-box" data-expand="${escapeHtml(entry.id)}" aria-label="${expanded ? "Einklappen" : "Ausklappen"}">${expanded ? "▾" : "▸"}</button>`,
+        );
+        return `${groupRow}${expanded ? `<div class="select-children">${childRows}</div>` : ""}`;
       }
-      return `<label class="select-row">
-        <input type="checkbox" data-select="${escapeHtml(entry.id)}" ${multiSelectState.selected.has(entry.id) ? "checked" : ""} />
-        ${iconImg(entry.icon)}<span class="select-row-name">${renderText(entry.name, settings.syllables)}</span>
-        <span class="select-row-count">${renderText(`${entry.words.length} Wörter`, settings.syllables)}</span>
-      </label>`;
+      return selectItem(
+        `select-${entry.id}`,
+        `data-select="${escapeHtml(entry.id)}" ${multiSelectState.selected.has(entry.id) ? "checked" : ""}`,
+        entry, entry.words.length, settings,
+      );
     }).join("");
-    const totalSelected = [...multiSelectState.selected].reduce((sum, id) => { const list = findList(id) || flatLists().find((l) => l.id === id); return sum + (list ? list.words.length : 0); }, 0);
     render(`<section class="screen">
-      <div class="topbar"><button id="home">${renderText("← Start", settings.syllables)}</button><h1>${renderText("Listen kombinieren", settings.syllables)}</h1></div>
-      <p class="intro">${renderText("Wähle mehrere Listen aus, die zusammen geübt werden sollen.", settings.syllables)}</p>
+      <div class="topbar"><button id="home">${renderText("← Start", settings.syllables)}</button><h1>${renderText("Üben", settings.syllables)}</h1></div>
+      <p class="intro">${renderText("✅ Wähle ein oder mehrere Themen aus (antippen zum An-/Abwählen).", settings.syllables)}</p>
       <div class="choices select-list">${rows}</div>
-      <p class="hint">${renderText(`${multiSelectState.selected.size} Listen ausgewählt (${totalSelected} Wörter)`, settings.syllables)}</p>
       <button class="primary" id="confirm-select" ${multiSelectState.selected.size === 0 ? "disabled" : ""}>${renderText("Weiter →", settings.syllables)}</button>
     </section>`);
     app.querySelectorAll("[data-indeterminate='true']").forEach((el) => { el.indeterminate = true; });
@@ -323,6 +332,7 @@
         ${hasImages(list) ? `<button class="list-button" id="mode-quiz"><span class="list-button-name">${renderText("🖼️ Bild-Übung", settings.syllables)}</span><span class="list-button-count">${renderText("passendes Bild zum Wort finden", settings.syllables)}</span></button>` : ""}
         ${hasImages(list) ? `<button class="list-button" id="mode-blitz"><span class="list-button-name">${renderText("⚡ Blitzlesen", settings.syllables)}</span><span class="list-button-count">${renderText("Wort kurz sehen, dann Bild wählen", settings.syllables)}</span></button>` : ""}
         ${list.spelling && hasImages(list) ? `<button class="list-button" id="mode-write"><span class="list-button-name">${renderText("✍️ Wort schreiben", settings.syllables)}</span><span class="list-button-count">${renderText("Bild sehen, Wort selbst schreiben", settings.syllables)}</span></button>` : ""}
+        ${list.spelling ? `<button class="list-button" id="mode-dictate"><span class="list-button-name">${renderText("🎧 Diktat", settings.syllables)}</span><span class="list-button-count">${renderText("nur hören, dann schreiben", settings.syllables)}</span></button>` : ""}
       </div>
     </section>`);
     app.querySelector("#home").addEventListener("click", home);
@@ -333,6 +343,8 @@
     if (blitzButton) blitzButton.addEventListener("click", () => blitzChooseDuration(id));
     const writeButton = app.querySelector("#mode-write");
     if (writeButton) writeButton.addEventListener("click", () => writeStart(id));
+    const dictateButton = app.querySelector("#mode-dictate");
+    if (dictateButton) dictateButton.addEventListener("click", () => dictateStart(id));
   }
 
   function start(id) { const list = findList(id); if (!list) return home(); state = { list, words: shuffle(list.words), index: 0 }; practice(); }
@@ -622,6 +634,97 @@
     const settings = getSettings();
     render(`<section class="screen"><div class="finish"><h1>${renderText("Geschafft! 🎉", settings.syllables)}</h1><p class="intro">${renderText("Du hast alle Wörter geschrieben.", settings.syllables)}</p>${scoreLine(writeState.firstTryCorrect, writeState.order.length, settings.syllables)}<button class="primary" id="again">${renderText("Noch einmal", settings.syllables)}</button><button id="home">${renderText("Andere Wortliste", settings.syllables)}</button></div></section>`);
     app.querySelector("#again").addEventListener("click", () => writeStart(writeState.list.id));
+    app.querySelector("#home").addEventListener("click", home);
+  }
+
+  // --- Diktat: nur Vorlesen (kein Bild, kein Wort sichtbar), Schüler:in
+  // schreibt mit - siehe CLAUDE.md, Abschnitt "Diktat". Anders als bei
+  // "Wort schreiben" ist die Kontrolle hier bewusst tolerant: Groß-/
+  // Kleinschreibung und ein Satzzeichen am Ende spielen keine Rolle, weil es
+  // ums Heraushören des Worts geht, nicht um exakte Rechtschreibung.
+
+  const normalizeDictation = (s) => s.trim().toLowerCase().replace(/[.,!?;:]+$/, "").replace(/\s+/g, " ").trim();
+  const isDictationCorrect = (input, word) => normalizeDictation(input) === normalizeDictation(word);
+
+  function dictateStart(id) {
+    const list = findList(id);
+    if (!list) return home();
+    dictateState = { list, order: shuffle(list.words), index: 0, firstTryCorrect: 0 };
+    dictateRound();
+  }
+
+  function dictateRound() {
+    if (dictateState.index >= dictateState.order.length) return dictateComplete();
+    const settings = getSettings();
+    const entry = dictateState.order[dictateState.index];
+    let hintTimer = null;
+    // Räumt einen laufenden Tipp-Timer auf - wird beim Verlassen des Screens
+    // (Start-Button, Weiter) und beim Loslassen des Tipp-Buttons aufgerufen.
+    const stopHint = () => { if (hintTimer) { clearInterval(hintTimer); hintTimer = null; } const el = app.querySelector("#hint-display"); if (el) el.textContent = ""; };
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${dictateState.index + 1} von ${dictateState.order.length}`, settings.syllables)}</div></div>
+      <div class="word-card"><button id="speak" class="primary speak" aria-label="Wort nochmal vorlesen">${renderText("🔊 Nochmal hören", settings.syllables)}</button></div>
+      <div class="hint-display" id="hint-display" aria-live="polite"></div>
+      <form id="write-form">
+        <input id="write-input" class="write-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Gehörtes Wort eintippen" />
+        <div class="write-row">
+          <button type="button" id="hint" class="secondary">${renderText("💡 Tipp", settings.syllables)}</button>
+          <button type="submit" class="primary write-submit">${renderText("Weiter →", settings.syllables)}</button>
+        </div>
+      </form>
+    </section>`);
+    app.querySelector("#home").addEventListener("click", () => { stopHint(); home(); });
+    app.querySelector("#speak").addEventListener("click", () => speak(entry.word));
+    const input = app.querySelector("#write-input");
+    input.focus();
+    const hintButton = app.querySelector("#hint");
+    const hintEl = app.querySelector("#hint-display");
+    let hintCount = 0;
+    const revealNext = () => {
+      hintCount = Math.min(hintCount + 1, entry.word.length);
+      hintEl.textContent = entry.word.slice(0, hintCount);
+      if (hintCount >= entry.word.length) stopHint();
+    };
+    const startHint = (e) => { e.preventDefault(); if (hintTimer) return; hintCount = 0; revealNext(); hintTimer = setInterval(revealNext, HINT_STEP_MS); };
+    hintButton.addEventListener("pointerdown", startHint);
+    ["pointerup", "pointerleave", "pointercancel"].forEach((evt) => hintButton.addEventListener(evt, stopHint));
+    app.querySelector("#write-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      stopHint();
+      const isCorrect = isDictationCorrect(input.value, entry.word);
+      if (isCorrect) dictateState.firstTryCorrect++;
+      dictateFeedback(entry, input.value, isCorrect);
+    });
+    // Direkt bei Rundenstart vorlesen - innerhalb desselben Klick-Ereignisses
+    // wie der auslösende Button (Diktat-Auswahl bzw. "Weiter"), da iOS Safari
+    // Sprachausgabe nur innerhalb eines Nutzer-Tipps erlaubt, nicht zeitlich
+    // versetzt per setTimeout.
+    speak(entry.word);
+  }
+
+  function dictateFeedback(entry, userInput, isCorrect) {
+    const settings = getSettings();
+    render(`<section class="screen">
+      <div class="topbar"><button id="home" aria-label="Zur Startseite">${renderText("⌂ Start", settings.syllables)}</button><div class="progress">${renderText(`${dictateState.index + 1} von ${dictateState.order.length}`, settings.syllables)}</div></div>
+      <div class="word-card">
+        <p class="feedback-verdict ${isCorrect ? "correct" : "wrong"}">${renderText(isCorrect ? "✅ Richtig!" : "❌ Nicht ganz richtig", settings.syllables)}</p>
+        ${isCorrect ? `<div class="word">${renderWord(entry, settings.syllables)}</div>` : `
+          <div class="compare-grid">
+            <div class="compare-box wrong"><p class="compare-label">${renderText("Deine Antwort", settings.syllables)}</p><p class="compare-word">${escapeHtml(userInput) || "–"}</p></div>
+            <div class="compare-box correct"><p class="compare-label">${renderText("Richtig wäre", settings.syllables)}</p><p class="compare-word">${renderWord(entry, settings.syllables)}</p></div>
+          </div>`}
+        ${entry.image && entry.image.url ? `<img class="write-image" src="${escapeHtml(entry.image.url)}" alt="" />` : ""}
+      </div>
+      <button id="next" class="primary">${renderText("Weiter →", settings.syllables)}</button>
+    </section>`);
+    app.querySelector("#home").addEventListener("click", home);
+    app.querySelector("#next").addEventListener("click", () => { dictateState.index++; dictateRound(); });
+  }
+
+  function dictateComplete() {
+    const settings = getSettings();
+    render(`<section class="screen"><div class="finish"><h1>${renderText("Geschafft! 🎉", settings.syllables)}</h1><p class="intro">${renderText("Du hast das Diktat geschafft.", settings.syllables)}</p>${scoreLine(dictateState.firstTryCorrect, dictateState.order.length, settings.syllables)}<button class="primary" id="again">${renderText("Noch einmal", settings.syllables)}</button><button id="home">${renderText("Andere Wortliste", settings.syllables)}</button></div></section>`);
+    app.querySelector("#again").addEventListener("click", () => dictateStart(dictateState.list.id));
     app.querySelector("#home").addEventListener("click", home);
   }
 

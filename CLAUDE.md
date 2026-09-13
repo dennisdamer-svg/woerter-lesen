@@ -150,12 +150,25 @@ Datenstruktur pro Liste:
     ebenfalls für alle Listen anbietet); bei künftigen neuen Listen prüfen,
     ob Rechtschreibübung fachlich passt, statt das Flag automatisch mit
     anzulegen.
+  - Im Modus "🎧 Diktat" wird **weder Bild noch Wort** gezeigt - nur ein
+    "🔊 Nochmal hören"-Button (das Wort wird beim Rundenstart automatisch
+    vorgelesen) und ein Textfeld. Die Schüler:in muss das Wort rein am Klang
+    erkennen und schreiben. Anders als bei "Wort schreiben" ist die Kontrolle
+    hier bewusst **tolerant**: Groß-/Kleinschreibung ist egal und ein
+    Satzzeichen am Ende (`.,!?;:`) wird beim Vergleich abgeschnitten
+    (`normalizeDictation()`/`isDictationCorrect()` in `app.js`) - es geht ums
+    Heraushören, nicht um exakte Rechtschreibung. Gleicher "💡 Tipp"-Button
+    wie bei "Wort schreiben" (`HINT_STEP_MS`). Nach der Rückmeldung wird
+    zusätzlich das Bild angezeigt, falls die Liste eins hat (verknüpft Klang
+    + Bild, jetzt wo die Aufgabe ohnehin gelöst ist) - Diktat selbst braucht
+    aber kein Bild und ist deshalb (anders als "Wort schreiben") **nicht**
+    an `hasImages()` gekoppelt, sondern nur an `spelling: true`.
 
 ### Auswertung am Rundenende
 
-Bild-Übung, Blitzlesen und Wort schreiben zeigen auf ihrem Abschluss-Screen
-zusätzlich eine Zeile "X von Y beim ersten Versuch richtig" (`scoreLine()` in
-`app.js`) - gezählt wird nur, ob die jeweilige Runde beim allerersten Tipp/
+Bild-Übung, Blitzlesen, Wort schreiben und Diktat zeigen auf ihrem
+Abschluss-Screen zusätzlich eine Zeile "X von Y beim ersten Versuch richtig"
+(`scoreLine()` in `app.js`) - gezählt wird nur, ob die jeweilige Runde beim allerersten Tipp/
 Eingabeversuch stimmte, nicht nach Korrekturversuchen. Der reine Lesemodus
 ("🔤 Wort lesen") hat keine Selbstkontrolle durch die App und bekommt daher
 bewusst keine Auswertungszeile.
