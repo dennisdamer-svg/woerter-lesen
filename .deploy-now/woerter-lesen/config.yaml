@@ -1,0 +1,5 @@
+# Deploy-Now-Konfiguration für dieses Projekt.
+# Aktuell keine Excludes/Remote-Commands/Cronjobs nötig - Datei existiert
+# nur, damit der von .github/workflows/woerter-lesen-build.yaml referenzierte
+# config-file-Pfad (.deploy-now/woerter-lesen/config.yaml) nicht ins Leere
+# zeigt.
