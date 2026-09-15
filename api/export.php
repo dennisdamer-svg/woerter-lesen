@@ -5,7 +5,7 @@
 // nur ein geteiltes Lehrkraft-Passwort.
 require_once __DIR__ . '/_bootstrap.php';
 
-$env = array_merge($_ENV, load_env(__DIR__ . '/.env'));
+$env = array_merge($_ENV, load_env(__DIR__ . '/app.env'));
 $adminPassword = $env['ADMIN_PASSWORD'] ?? '';
 $given = $_GET['password'] ?? '';
 

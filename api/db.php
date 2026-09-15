@@ -7,7 +7,7 @@ function db(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
 
-    $env = array_merge($_ENV, load_env(__DIR__ . '/.env'));
+    $env = array_merge($_ENV, load_env(__DIR__ . '/app.env'));
     $host = $env['DB_HOST'] ?? '';
     $port = $env['DB_PORT'] ?? '3306';
     $name = $env['DB_DATABASE'] ?? '';
