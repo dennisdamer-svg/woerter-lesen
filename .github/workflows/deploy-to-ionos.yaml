@@ -77,6 +77,11 @@ jobs:
           output-directory: deployment
           intermediate-data-file: deployment/.template-renderer-data
 
+      - name: Publish rendered runtime config
+        run: |
+          test -s deployment/.deploy-now/woerter-lesen/api/app.env
+          install -m 600 deployment/.deploy-now/woerter-lesen/api/app.env deployment/api/app.env
+
       - name: Render real site-url to all files
         run: |
           for file in `grep -rl 'https://IONOS_DEPLOY_NOW_SITE_URL' .`; do
